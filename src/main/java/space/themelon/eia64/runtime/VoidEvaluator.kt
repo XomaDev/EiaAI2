@@ -167,4 +167,16 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
+    override fun javaName(jName: JavaName): Any {
+        throw ShutdownException()
+    }
+
+    override fun javaFieldAccess(access: JavaFieldAccess): Any {
+        throw ShutdownException()
+    }
+
+    override fun javaMethodCall(jCall: JavaMethodCall): Any {
+        throw ShutdownException()
+    }
+
 }

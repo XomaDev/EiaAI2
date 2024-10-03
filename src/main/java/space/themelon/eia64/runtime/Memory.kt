@@ -6,7 +6,7 @@ import space.themelon.eia64.runtime.Entity.Companion.unbox
 import java.util.*
 import kotlin.collections.ArrayList
 
-class Memory(private val trace: EiaTrace?) {
+class Memory() {
 
     data class Frame(var fSuper: Frame? = null) {
         var values = ArrayList<Pair<String, Any>>()
@@ -57,8 +57,6 @@ class Memory(private val trace: EiaTrace?) {
     fun enterScope() {
         currentFrame = createFrame()
         frameStack.push(currentFrame)
-        //tracer.enterScope()
-        trace?.enterScope() // forward calls
     }
 
     fun leaveScope() {
@@ -68,8 +66,6 @@ class Memory(private val trace: EiaTrace?) {
 
         frameStack.pop()
         recycle(reusable)
-        //tracer.leaveScope()
-        trace?.leaveScope() // forward calls
     }
 
     fun declareVar(name: String, value: Any) {
@@ -84,12 +80,7 @@ class Memory(private val trace: EiaTrace?) {
         //tracer.declareFn(name, value.arguments)
     }
 
-    fun getVar(index: Int, name: String): Any {
-        val value = currentFrame.searchVr(index, name)
-        val unboxed = unbox(value)
-        trace?.getVariableRuntime(name, getSignature(unboxed), unboxed)
-        return value
-    }
+    fun getVar(index: Int, name: String) = currentFrame.searchVr(index, name)
 
     fun dynamicFnSearch(name: String): FunctionExpr? {
         if (frameStack.size != 1)

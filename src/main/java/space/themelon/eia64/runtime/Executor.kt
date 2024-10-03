@@ -1,6 +1,7 @@
 package space.themelon.eia64.runtime
 
 import space.themelon.eia64.analysis.ParserX
+import space.themelon.eia64.primitives.EJava
 import space.themelon.eia64.syntax.Lexer
 import space.themelon.eia64.syntax.Token
 import java.io.File
@@ -10,9 +11,6 @@ class Executor {
 
     companion object {
         var DEBUG = true
-        // where runtime logs are displayed
-        var LOGS_PIPE_PATH = "/tmp/pipe1"
-
         var STD_LIB = "" // will be set
         var EXECUTION_DIRECTORY: String = File(System.getProperty("user.dir")).absolutePath
 
@@ -26,7 +24,6 @@ class Executor {
         if (STD_LIB.isBlank()) throw RuntimeException("STD_LIB is not set")
     }
 
-
     // why do we do this? sometimes while we are developing demonstrable
     // APIs for Eia64, we would want the output to be captured in memory and
     // sent somewhere else
@@ -38,6 +35,14 @@ class Executor {
 
     private val externalParsers = HashMap<String, ParserX>()
     private val mainParser = ParserX(this)
+
+    val varMap = HashMap<String, EJava>()
+    val varClassMap = HashMap<String, Class<*>>()
+
+    fun defineJavaObject(name: String, obj: Any) {
+        varMap += name to EJava(obj)
+        varClassMap += name to obj.javaClass
+    }
 
     fun loadMainFile(sourceFile: String) {
         try {

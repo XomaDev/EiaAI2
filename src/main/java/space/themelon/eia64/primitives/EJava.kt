@@ -1,0 +1,26 @@
+package space.themelon.eia64.primitives
+
+class EJava(
+    initialValue: Any
+): Primitive<EJava> {
+
+    private var value = initialValue
+
+    override fun set(value: Any) {
+        if (value !is EJava)
+            throw RuntimeException("EJava.set() is not an EJava")
+        this.value = value
+    }
+
+    override fun get() = value
+
+    override fun stdlibName() = throw NotImplementedError()
+
+    override fun isCopyable() = false
+
+    override fun copy() = throw UnsupportedOperationException()
+
+    override fun toString(): String {
+        return "EJava($value)"
+    }
+}

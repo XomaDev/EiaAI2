@@ -1,1 +1,5 @@
-Button1.Text = "Hello, World"
+Button1.Text("Hello, World")
+println(Button1)
+
+Button1.meow = "wassap"
+println(Button1.meow)

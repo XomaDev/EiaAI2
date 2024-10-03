@@ -50,6 +50,7 @@ open class Entity(
             is EChar -> Sign.CHAR
             is EArray -> ArrayExtension(value.elementSignature)
             is EType -> Sign.TYPE
+            is EJava -> Sign.JAVA
             is Expression -> Sign.UNIT
             is Evaluator -> ObjectExtension(value.className)
             else -> throw RuntimeException("Unknown type of value $value")

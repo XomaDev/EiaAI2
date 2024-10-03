@@ -2,7 +2,6 @@ package space.themelon.eia64.signatures
 
 import space.themelon.eia64.Expression
 import space.themelon.eia64.syntax.Token
-import kotlin.math.exp
 
 object Matching {
 
@@ -12,9 +11,10 @@ object Matching {
     fun matches(expect: Signature, got: Signature): Boolean {
         if (expect == Sign.NUM) return got.isNumeric()
         if (expect == Sign.ARRAY && got is ArrayExtension) return true
+        if (expect == Sign.JAVA && (got == Sign.JAVA || got is JavaObjectSign)) return true
         if (got == Sign.NIL) return true
         if (expect == Sign.ANY) return got != Sign.NONE
-        if (expect is SimpleSignature)return expect == got
+        if (expect is SimpleSignature) return expect == got
 
         if (expect is ArrayExtension) {
             if (got !is ArrayExtension) return false
@@ -29,6 +29,9 @@ object Matching {
             ) return true
             return expect.extensionClass == got.extensionClass
         }
+        // verify underlying classes are same
+        if (expect is JavaObjectSign && got is JavaObjectSign)
+            return expect == got
         return false
     }
 

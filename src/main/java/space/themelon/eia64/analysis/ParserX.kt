@@ -641,6 +641,15 @@ class ParserX(
                     return Sign.ARRAY
                 }
                 Type.E_OBJECT -> ObjectExtension(Sign.OBJECT.type) // Generic form
+                Type.E_JAVA -> {
+                    if (consumeNext(Type.OPEN_CURVE)) {
+                        val name = readAlpha()
+                        expectType(Type.CLOSE_CURVE)
+                        return JavaObjectSign(Class.forName(name))
+                    } else {
+                        return Sign.JAVA
+                    }
+                }
                 else -> token.error("Unknown class $classType")
             }
         }
@@ -735,7 +744,11 @@ class ParserX(
                     skip()
                     Cast(nextOp, left, readSignature(next()))
                 }
-                else -> classElementCall(left)
+                else -> {
+                    val sig = left.sig()
+                    if (sig.isJava()) javaCall(left, sig)
+                    else classElementCall(left)
+                }
             }
         }
         return left
@@ -752,7 +765,7 @@ class ParserX(
 
     private fun checkMutability(where: Token, variableExpression: Expression) {
         // it's fine if it's array access, array elements are always mutable
-        if (variableExpression is ArrayAccess) return
+        if (variableExpression is ArrayAccess || variableExpression is JavaFieldAccess) return
 
         val variableName: String
         val index: Int
@@ -785,6 +798,74 @@ class ParserX(
             where.error<String>("Variable $variableName is marked immutable")
             throw RuntimeException()
         }
+    }
+
+    private fun javaCall(
+        jExpr: Expression,
+        jSig: Signature
+    ): Expression {
+        expectType(Type.DOT)
+        // either field name or method name
+        val accessNameT = next()
+        val accessName = readAlpha(accessNameT)
+
+        if (jSig == Sign.JAVA) {
+            // generic type, we don't know the class
+            accessNameT.error<String>("Cannot call a method or access a field on generic Java object")
+            throw RuntimeException()
+        }
+
+        jSig as JavaObjectSign
+        val clazz = jSig.clazz
+
+        if (consumeNext(Type.OPEN_CURVE)) {
+            // java method call
+            val args = parseArguments()
+            expectType(Type.CLOSE_CURVE)
+
+            val argsSize = args.size
+            for (method in clazz.methods) {
+                if (method.name == accessName && method.parameterCount == argsSize) {
+                    return JavaMethodCall(
+                        accessNameT,
+                        jExpr,
+                        method,
+                        args,
+                        Signature.signFromJavaClass(method.returnType)
+                    )
+                }
+            }
+
+            throw RuntimeException("Could not find method '$accessName' of args size $argsSize on class $clazz")
+        }
+        // java field access or method like `Text()`
+
+        // try searching for a field
+        for (field in clazz.fields) {
+            if (field.name == accessName) {
+                return JavaFieldAccess(
+                    accessNameT,
+                    jExpr,
+                    field,
+                    Signature.signFromJavaClass(field.type)
+                )
+            }
+        }
+
+        // search for a method with single parameter count
+        for (method in clazz.methods) {
+            if (method.name == accessName && method.parameterCount == 1) {
+                return JavaMethodCall(
+                    accessNameT,
+                    jExpr,
+                    method,
+                    emptyList(),
+                    Signature.signFromJavaClass(method.returnType)
+                )
+            }
+        }
+
+        throw RuntimeException("Could not find property or field '$accessName' on class $clazz")
     }
 
     private fun classElementCall(objExpr: Expression): Expression {
@@ -1030,26 +1111,7 @@ class ParserX(
             Type.E_FLOAT -> FloatLiteral(token, token.data as Float)
             Type.E_STRING -> StringLiteral(token, token.data as String)
             Type.E_CHAR -> CharLiteral(token, token.data as Char)
-            Type.ALPHA -> {
-                val name = readAlpha(token)
-                val vrReference = manager.resolveVr(name)
-                if (vrReference == null) {
-                    // could be a function call or static invocation
-                    if (manager.hasFunctionNamed(name))
-                        // there could be multiple functions with same name
-                        // but different args, this just marks it as a function
-                        Alpha(token, -3, name, Sign.NONE)
-                    else if (manager.staticClasses.contains(name))
-                        // probably referencing a method from an outer class
-                        Alpha(token, -2, name, Sign.NONE)
-                    else
-                        // Unresolved name
-                        token.error("Cannot find symbol '$name'")
-                } else {
-                    // classic variable access
-                    Alpha(token, vrReference.index, name, vrReference.signature)
-                }
-            }
+            Type.ALPHA -> verifyAlpha(token)
             Type.CLASS_VALUE -> parseType(token)
 
             Type.OPEN_CURVE -> {
@@ -1059,6 +1121,34 @@ class ParserX(
             }
 
             else -> token.error("Unknown token type")
+        }
+    }
+
+    private fun verifyAlpha(token: Token): Expression {
+        val name = readAlpha(token)
+        val vrReference = manager.resolveVr(name)
+        return if (vrReference == null) {
+            // could be a function call or static invocation
+            if (manager.hasFunctionNamed(name))
+            // there could be multiple functions with same name
+            // but different args, this just marks it as a function
+                Alpha(token, -3, name, Sign.NONE)
+            else if (manager.staticClasses.contains(name))
+            // probably referencing a method from an outer class
+                Alpha(token, -2, name, Sign.NONE)
+            else {
+                val envObj = executor.varMap[name]
+                if (envObj == null) {
+                    // Unresolved name
+                    token.error("Cannot find symbol '$name'")
+                } else {
+                    // java object access :)
+                    JavaName(token, name, JavaObjectSign(executor.varClassMap[name]!!))
+                }
+            }
+        } else {
+            // classic variable access
+            Alpha(token, vrReference.index, name, vrReference.signature)
         }
     }
 
@@ -1115,6 +1205,14 @@ class ParserX(
         if (next.type != type)
             next.error<String>("Expected token type $type but got $next")
         return next
+    }
+
+    private fun consumeNext(type: Type): Boolean {
+        if (isNext(type)) {
+            index++
+            return true
+        }
+        return false
     }
 
     private fun isNext(type: Type) = !isEOF() && peek().type == type

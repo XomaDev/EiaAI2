@@ -6,11 +6,8 @@ import space.themelon.eia64.expressions.FunctionExpr
 import space.themelon.eia64.primitives.*
 import space.themelon.eia64.runtime.Entity.Companion.getSignature
 import space.themelon.eia64.runtime.Entity.Companion.unbox
-import space.themelon.eia64.signatures.ArrayExtension
+import space.themelon.eia64.signatures.*
 import space.themelon.eia64.signatures.Matching.matches
-import space.themelon.eia64.signatures.ObjectExtension
-import space.themelon.eia64.signatures.Sign
-import space.themelon.eia64.signatures.Signature
 import space.themelon.eia64.syntax.Type.*
 import java.io.FileOutputStream
 import java.io.PrintStream
@@ -27,10 +24,6 @@ class Evaluator(
     private val startupTime = System.currentTimeMillis()
 
     private var evaluator: Expression.Visitor<Any> = this
-
-    // in the future, we need to give options to enable/ disable:
-    //  how about enabling it through eia code?
-    private val tracer = if (Executor.DEBUG) EiaTrace(PrintStream(FileOutputStream(Executor.LOGS_PIPE_PATH))) else null
 
     fun shutdown() {
         // Reroute all the traffic to Void, which would raise ShutdownException.
@@ -70,7 +63,7 @@ class Evaluator(
 
     // Supply tracer to memory, so that it calls enterScope() and leaveScope()
     // on tracer on behalf of us
-    private val memory = Memory(tracer)
+    private val memory = Memory()
 
     fun clearMemory() {
         memory.clearMemory()
@@ -87,6 +80,9 @@ class Evaluator(
     override fun typeLiteral(literal: TypeLiteral) = EType(literal.signature)
 
     override fun alpha(alpha: Alpha) = memory.getVar(alpha.index, alpha.value)
+
+    override fun javaName(jName: JavaName) = executor.varMap[jName.name]
+        ?: throw RuntimeException("Couldn't find Java Object '${jName.name}'")
 
     private fun prepareArrayOf(
         arguments: List<Expression>,
@@ -114,7 +110,6 @@ class Evaluator(
                        name: String,
                        value: Any) {
         (memory.getVar(index, name) as Entity).update(value)
-        tracer?.updateVariableRuntime(name, getSignature(value), value)
     }
 
     private fun update(aMemory: Memory,
@@ -122,7 +117,6 @@ class Evaluator(
                        name: String,
                        value: Any) {
         (aMemory.getVar(index, name) as Entity).update(value)
-        tracer?.updateVariableRuntime(name, getSignature(value), value)
     }
 
     override fun variable(variable: ExplicitVariable): Any {
@@ -132,11 +126,6 @@ class Evaluator(
         val mutable = variable.mutable
 
         memory.declareVar(name, Entity(name, mutable, value, signature))
-        tracer?.declareVariableRuntime(
-            mutable,
-            name,
-            signature,
-            value)
         return value
     }
 
@@ -153,11 +142,6 @@ class Evaluator(
                 signature
             )
         )
-        tracer?.declareVariableRuntime(
-            true,
-            autoVariable.name,
-            signature,
-            value)
         return value
     }
 
@@ -226,6 +210,7 @@ class Evaluator(
                 is Alpha -> update(toUpdate.index, toUpdate.value, value)
                 is ArrayAccess -> updateArrayElement(toUpdate, value)
                 is ForeignField -> updateForeignField(toUpdate, value)
+                is JavaFieldAccess -> updateJavaField(toUpdate, value)
                 else -> throw RuntimeException("Unknown left operand for [= Assignment]: $toUpdate")
             }
             value
@@ -343,7 +328,6 @@ class Evaluator(
     override fun new(new: NewObj): Evaluator {
         val evaluator = executor.newEvaluator(new.name)
         fnInvoke(new.reference.fnExpression!!, evaluateArgs(new.arguments))
-        tracer?.runtimeObjectCreation(new.name, evaluator)
         return evaluator
     }
 
@@ -391,10 +375,26 @@ class Evaluator(
             //  before renaming signature to Array<Int>
             if (castArrayType != currentArrayType) {
                 cast.where.error<String>("Cannot cast array element type $currentArrayType into $castArrayType")
+                throw RuntimeException()
             }
         } else if (promisedSignature == Sign.ARRAY) {
             if (!(gotSignature is ArrayExtension || gotSignature == Sign.ARRAY)) {
                 cast.where.error<String>("Cannot cast $result to $promisedSignature")
+                throw RuntimeException()
+            }
+        } else if (promisedSignature is JavaObjectSign) {
+            if (gotSignature !is JavaObjectSign) {
+                cast.where.error<String>("Cannot cast $result to $promisedSignature")
+                throw RuntimeException()
+            }
+            if (promisedSignature != gotSignature) {
+                cast.where.error<String>("Expected class ${promisedSignature.clazz} but got ${gotSignature.clazz}")
+                throw RuntimeException()
+            }
+        } else if (promisedSignature == Sign.JAVA) {
+            if (!(gotSignature is JavaObjectSign || gotSignature == Sign.JAVA)) {
+                cast.where.error<String>("Cannot cast $result to $promisedSignature")
+                throw RuntimeException()
             }
         }
         return result
@@ -574,6 +574,40 @@ class Evaluator(
         return result
     }
 
+    private fun updateJavaField(field: JavaFieldAccess, value: Any) {
+        // do not evaluate field, it will lead to access
+        field.field.set((unboxEval(field.jObject) as EJava).get(), eiaToJava(value))
+    }
+
+    override fun javaMethodCall(jCall: JavaMethodCall): Any {
+        val evaluatedArgs = jCall.args.map { eiaToJava(unboxEval(it)) }.toTypedArray()
+        val jObj = (unboxEval(jCall.jObject) as EJava).get()
+        return javaToEia(jCall.method.invoke(jObj, *evaluatedArgs))
+    }
+
+    override fun javaFieldAccess(access: JavaFieldAccess) = javaToEia(access.field.get((unboxEval(access.jObject) as EJava).get()))
+
+    private fun eiaToJava(value: Any): Any? {
+        if (value !is Primitive<*>)
+            throw RuntimeException("Cannot convert to Java: $value")
+        if (value is ENil) return null
+        return value.get()
+    }
+
+    private fun javaToEia(value: Any?): Primitive<*> {
+        return when (value) {
+            is Int -> EInt(value)
+            is Float -> EFloat(value)
+            is String -> EString(value)
+            is Boolean -> EBool(value)
+            is Char -> EChar(value)
+            null -> ENil()
+            // we need to recurse the elements here
+            is Array<*> -> EArray(Sign.ANY, value.map { element -> javaToEia(element) as Any }.toTypedArray())
+            else -> throw RuntimeException("Cannot translate to eia: $value")
+        }
+    }
+
     override fun classPropertyAccess(propertyAccess: ForeignField): Any {
         val evaluator = getEvaluatorForField(propertyAccess)
         val uniqueVariable = propertyAccess.uniqueVariable
@@ -685,7 +719,6 @@ class Evaluator(
             callValues += Pair(definedParameter, callValue)
             argValues += Pair(definedParameter.first, callValue)
         }
-        tracer?.runtimeFnCall(fnName, argValues)
         memory.enterScope()
         callValues.forEach {
             val definedParameter = it.first
@@ -747,7 +780,6 @@ class Evaluator(
         var numIterations = 0
         while (booleanExpr(until.expression).get()) {
             numIterations++
-            tracer?.runtimeUntil(numIterations)
             val result = eval(until.body)
             if (result is Entity) {
                 when (result.interruption) {
@@ -793,7 +825,6 @@ class Evaluator(
             memory.enterScope()
             val element = getNext()
             memory.declareVar(named, Entity(named, false, element, getSignature(element)))
-            tracer?.runtimeForEach(numIterations, iterable, element)
             val result = eval(body)
             memory.leaveScope()
             if (result is Entity) {
@@ -855,7 +886,6 @@ class Evaluator(
         while (if (conditional == null) true else booleanExpr(conditional).get()) {
             numIterations++
             // Auto Scopped
-            tracer?.runtimeFor(numIterations)
             val result = eval(forLoop.body)
             // Scope -> Memory -> Array
             if (result is Entity) {
@@ -929,7 +959,6 @@ class Evaluator(
 
     override fun function(function: FunctionExpr): Any {
         memory.declareFn(function.name, function)
-        tracer?.declareFn(function.name, function.arguments)
         return EBool(true)
     }
 
