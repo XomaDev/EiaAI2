@@ -585,7 +585,8 @@ class Evaluator(
         return javaToEia(jCall.method.invoke(jObj, *evaluatedArgs))
     }
 
-    override fun javaFieldAccess(access: JavaFieldAccess) = javaToEia(access.field.get((unboxEval(access.jObject) as EJava).get()))
+    override fun javaFieldAccess(access: JavaFieldAccess) =
+        javaToEia(access.field.get((unboxEval(access.jObject) as EJava).get()))
 
     private fun eiaToJava(value: Any): Any? {
         if (value !is Primitive<*>)

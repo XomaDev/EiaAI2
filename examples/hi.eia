@@ -3,3 +3,6 @@ println(Button1)
 
 Button1.meow = "wassap"
 println(Button1.meow)
+
+Button1.meow += "hello world"
+println(Button1.meow)

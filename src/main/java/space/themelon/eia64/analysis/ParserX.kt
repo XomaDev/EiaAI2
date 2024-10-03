@@ -707,7 +707,7 @@ class ParserX(
                 val right =
                     if (opToken.hasFlag(Flag.PRESERVE_ORDER)) parseElement()
                     else parseExpr(precedence)
-                left = BinaryOperation(
+                left = makeBinaryExpr(
                     opToken,
                     left,
                     right,
@@ -716,6 +716,43 @@ class ParserX(
             }
         }
         return left
+    }
+
+    private fun makeBinaryExpr(
+        opToken: Token,
+        left: Expression,
+        right: Expression,
+        type: Type
+    ): BinaryOperation {
+        if (opToken.hasFlag(Flag.SPREAD)) {
+            // We gotta translate `x += 2` into `x = x + 2`
+            // wen token has `SPREAD` flag
+            val newType = when (type) {
+                Type.ADDITIVE_ASSIGNMENT -> Type.PLUS
+                Type.DEDUCTIVE_ASSIGNMENT -> Type.NEGATE
+                Type.MULTIPLICATIVE_ASSIGNMENT -> Type.MULTIPLICATIVE_ASSIGNMENT
+                Type.DIVIDIVE_ASSIGNMENT -> Type.SLASH
+                Type.REMAINDER_ASSIGNMENT -> Type.REMAINDER
+                else -> throw RuntimeException("Unexpected operator $opToken")
+            }
+            val newOpToken = Token(opToken.lineCount, newType)
+
+            // extreme left => left
+            // extreme right => ( left  [opToken] right  )
+            val newRight = BinaryOperation(newOpToken, left, right, type)
+            return BinaryOperation(
+                newOpToken,
+                left,
+                newRight,
+                Type.ASSIGNMENT
+            )
+        }
+        return BinaryOperation(
+            opToken,
+            left,
+            right,
+            type
+        )
     }
 
     private fun parseElement(): Expression {

@@ -23,4 +23,7 @@ enum class Flag {
     NATIVE_CALL,
     INTERRUPTION,
     NONE,
+
+    // x += 2 would be translated to x = x + 2
+    SPREAD,
 }
