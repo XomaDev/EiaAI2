@@ -6,3 +6,7 @@ println(Button1.meow)
 
 Button1.meow += "hello world"
 println(Button1.meow)
+
+Button1:Click {
+  Button1.Text = "Why you click me?"
+}

@@ -8,6 +8,6 @@ object TestingEia {
         Executor.STD_LIB = "/home/kumaraswamy/Documents/AppInv/stdlib/"
         val executor = Executor()
         executor.defineJavaObject("Button1", Button())
-        executor.loadMainFile("/home/kumaraswamy/Documents/AppInv/examples/hi.eia")
+        executor.loadMainFile("/home/kumaraswamy/Documents/AppInv/examples/event.eia")
     }
 }

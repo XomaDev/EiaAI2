@@ -55,6 +55,8 @@ abstract class Expression(
         fun javaName(jName: JavaName): R
         fun javaFieldAccess(access: JavaFieldAccess): R
         fun javaMethodCall(jCall: JavaMethodCall): R
+        fun javaPropertyField(jProperty: JavaPropertyField): R
+        fun eventRegistration(registration: EventRegistration): R
     }
 
     abstract fun <R> accept(v: Visitor<R>): R

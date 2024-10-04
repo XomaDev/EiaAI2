@@ -4,13 +4,13 @@ import space.themelon.eia64.Expression
 import space.themelon.eia64.expressions.*
 import space.themelon.eia64.expressions.FunctionExpr
 import space.themelon.eia64.primitives.*
+import space.themelon.eia64.runtime.Conversions.eiaToJava
+import space.themelon.eia64.runtime.Conversions.javaToEia
 import space.themelon.eia64.runtime.Entity.Companion.getSignature
 import space.themelon.eia64.runtime.Entity.Companion.unbox
 import space.themelon.eia64.signatures.*
 import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.syntax.Type.*
-import java.io.FileOutputStream
-import java.io.PrintStream
 import java.util.Scanner
 import kotlin.collections.ArrayList
 import kotlin.math.pow
@@ -211,38 +211,10 @@ class Evaluator(
                 is ArrayAccess -> updateArrayElement(toUpdate, value)
                 is ForeignField -> updateForeignField(toUpdate, value)
                 is JavaFieldAccess -> updateJavaField(toUpdate, value)
+                is JavaPropertyField -> updateJavaProperty(toUpdate, value) // almost same as java field
                 else -> throw RuntimeException("Unknown left operand for [= Assignment]: $toUpdate")
             }
             value
-        }
-        ADDITIVE_ASSIGNMENT -> {
-            val element = unboxEval(expr.left)
-            when (element) {
-                is EString -> element.append(unboxEval(expr.right))
-                is Numeric -> element.plusAssign(numericExpr(expr.right))
-                else -> throw RuntimeException("Cannot apply += operator on element $element")
-            }
-            element
-        }
-        DEDUCTIVE_ASSIGNMENT -> {
-            val variable = numericExpr(expr.left)
-            variable /= (numericExpr(expr.right))
-            variable
-        }
-        MULTIPLICATIVE_ASSIGNMENT -> {
-            val variable = numericExpr(expr.left)
-            variable *= (numericExpr(expr.right))
-            variable
-        }
-        DIVIDIVE_ASSIGNMENT -> {
-            val variable = numericExpr(expr.left)
-            variable /= (numericExpr(expr.right))
-            variable
-        }
-        REMAINDER_ASSIGNMENT -> {
-            val variable = numericExpr(expr.left)
-            variable %= (numericExpr(expr.right))
-            variable
         }
         POWER -> {
             val left = numericExpr(expr.left)
@@ -574,40 +546,52 @@ class Evaluator(
         return result
     }
 
+    override fun eventRegistration(registration: EventRegistration): Any {
+        val jObj = (unboxEval(registration.jExpression) as EJava)
+        EiaEventDispatcher.registerEvent(
+            jObj.name,
+            registration.eventName,
+            EventInterface(
+                "$jObj.${registration.eventName}",
+                registration.args,
+                registration.body,
+                this@Evaluator
+            )
+        )
+        return Nothing.INSTANCE
+    }
+
+    private fun updateJavaProperty(property: JavaPropertyField, value: Any): Any {
+        if (property.setMethod == null) {
+            throw RuntimeException("Cannot set ${property.name}.${property.name}, method docent exist")
+        }
+        val jObj = (unboxEval(property.jExpr) as EJava).get()
+        property.setMethod.invoke(jObj, value.eiaToJava())
+        return value
+    }
+
     private fun updateJavaField(field: JavaFieldAccess, value: Any) {
         // do not evaluate field, it will lead to access
-        field.field.set((unboxEval(field.jObject) as EJava).get(), eiaToJava(value))
+        field.field.set((unboxEval(field.jObject) as EJava).get(), value.eiaToJava())
+    }
+
+    override fun javaPropertyField(jProperty: JavaPropertyField): Any {
+        // Consider a get() always, set() is handled by assignment op
+        val eJava = unboxEval(jProperty.jExpr) as EJava
+        if (jProperty.getMethod == null) {
+            throw RuntimeException("Cannot do ${eJava.name}.${jProperty.name}(), method docent exist")
+        }
+        return jProperty.getMethod.invoke(eJava.get())
     }
 
     override fun javaMethodCall(jCall: JavaMethodCall): Any {
-        val evaluatedArgs = jCall.args.map { eiaToJava(unboxEval(it)) }.toTypedArray()
+        val evaluatedArgs = jCall.args.map { unboxEval(it).eiaToJava() }.toTypedArray()
         val jObj = (unboxEval(jCall.jObject) as EJava).get()
-        return javaToEia(jCall.method.invoke(jObj, *evaluatedArgs))
+        return jCall.method.invoke(jObj, *evaluatedArgs).javaToEia()
     }
 
     override fun javaFieldAccess(access: JavaFieldAccess) =
-        javaToEia(access.field.get((unboxEval(access.jObject) as EJava).get()))
-
-    private fun eiaToJava(value: Any): Any? {
-        if (value !is Primitive<*>)
-            throw RuntimeException("Cannot convert to Java: $value")
-        if (value is ENil) return null
-        return value.get()
-    }
-
-    private fun javaToEia(value: Any?): Primitive<*> {
-        return when (value) {
-            is Int -> EInt(value)
-            is Float -> EFloat(value)
-            is String -> EString(value)
-            is Boolean -> EBool(value)
-            is Char -> EChar(value)
-            null -> ENil()
-            // we need to recurse the elements here
-            is Array<*> -> EArray(Sign.ANY, value.map { element -> javaToEia(element) as Any }.toTypedArray())
-            else -> throw RuntimeException("Cannot translate to eia: $value")
-        }
-    }
+        access.field.get((unboxEval(access.jObject) as EJava).get()).javaToEia()
 
     override fun classPropertyAccess(propertyAccess: ForeignField): Any {
         val evaluator = getEvaluatorForField(propertyAccess)

@@ -1,7 +1,8 @@
 package space.themelon.eia64.primitives
 
 class EJava(
-    initialValue: Any
+    initialValue: Any,
+    val name: String,
 ): Primitive<EJava> {
 
     private var value = initialValue

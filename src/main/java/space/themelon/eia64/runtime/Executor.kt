@@ -40,7 +40,7 @@ class Executor {
     val varClassMap = HashMap<String, Class<*>>()
 
     fun defineJavaObject(name: String, obj: Any) {
-        varMap += name to EJava(obj)
+        varMap += name to EJava(obj, name)
         varClassMap += name to obj.javaClass
     }
 

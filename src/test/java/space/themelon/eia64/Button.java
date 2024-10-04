@@ -11,7 +11,7 @@ public class Button {
     }
 
     public String Text() {
-        return Text();
+        return text;
     }
 
     @Override

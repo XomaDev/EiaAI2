@@ -10,6 +10,7 @@ import space.themelon.eia64.syntax.Flag
 import space.themelon.eia64.syntax.Token
 import space.themelon.eia64.syntax.Type
 import java.io.File
+import java.lang.reflect.Method
 import java.util.StringJoiner
 
 class ParserX(
@@ -428,18 +429,7 @@ class ParserX(
         val where = next()
         val name = readAlpha(where)
 
-        expectType(Type.OPEN_CURVE)
-        val requiredArgs = mutableListOf<Pair<String, Signature>>()
-        while (!isEOF() && peek().type != Type.CLOSE_CURVE) {
-            val parameterName = readAlpha()
-            expectType(Type.COLON)
-            val signature = readSignature(next())
-
-            requiredArgs += parameterName to signature
-            if (!isNext(Type.COMMA)) break
-            skip()
-        }
-        expectType(Type.CLOSE_CURVE)
+        val requiredArgs = readRequiredArgs()
 
         val isVoid: Boolean
         val returnSignature = if (isNext(Type.COLON)) {
@@ -462,6 +452,22 @@ class ParserX(
             public,
             index
         )
+    }
+
+    private fun readRequiredArgs(): List<Pair<String, Signature>> {
+        expectType(Type.OPEN_CURVE)
+        val requiredArgs = mutableListOf<Pair<String, Signature>>()
+        while (!isEOF() && peek().type != Type.CLOSE_CURVE) {
+            val parameterName = readAlpha()
+            expectType(Type.COLON)
+            val signature = readSignature(next())
+
+            requiredArgs += parameterName to signature
+            if (!isNext(Type.COMMA)) break
+            skip()
+        }
+        expectType(Type.CLOSE_CURVE)
+        return requiredArgs
     }
 
     private fun fnDeclaration(): FunctionExpr {
@@ -739,7 +745,7 @@ class ParserX(
 
             // extreme left => left
             // extreme right => ( left  [opToken] right  )
-            val newRight = BinaryOperation(newOpToken, left, right, type)
+            val newRight = BinaryOperation(newOpToken, left, right, newType)
             return BinaryOperation(
                 newOpToken,
                 left,
@@ -765,6 +771,7 @@ class ParserX(
                 && !(nextOp.type == Type.OPEN_CURVE && !isLiteral(left)) // (left points/is a unit)
                 && nextOp.type != Type.OPEN_SQUARE // array element access
                 && nextOp.type != Type.DOUBLE_COLON // value casting
+                && nextOp.type != Type.COLON // event registration
             ) break
 
             left = when (nextOp.type) {
@@ -780,6 +787,10 @@ class ParserX(
                 Type.DOUBLE_COLON -> {
                     skip()
                     Cast(nextOp, left, readSignature(next()))
+                }
+                Type.COLON -> {
+                    skip()
+                    eventRegistration(left)
                 }
                 else -> {
                     val sig = left.sig()
@@ -802,7 +813,9 @@ class ParserX(
 
     private fun checkMutability(where: Token, variableExpression: Expression) {
         // it's fine if it's array access, array elements are always mutable
-        if (variableExpression is ArrayAccess || variableExpression is JavaFieldAccess) return
+        if (variableExpression is ArrayAccess
+            || variableExpression is JavaFieldAccess
+            || (variableExpression is JavaPropertyField)) return
 
         val variableName: String
         val index: Int
@@ -837,11 +850,22 @@ class ParserX(
         }
     }
 
+    private fun eventRegistration(jExpr: Expression): Expression {
+        // Button1:Click() { .. }
+        val where = next()
+        val eventName = readAlpha(where)
+        if (!jExpr.sig().isJava())
+            throw RuntimeException("Cannot register events on non Java objects")
+        val requiredArgs = if (isNext(Type.OPEN_CURVE)) readRequiredArgs() else emptyList()
+        val scopedBody = autoScopeBody()
+        return EventRegistration(where, jExpr, eventName, requiredArgs, scopedBody)
+    }
+
     private fun javaCall(
         jExpr: Expression,
         jSig: Signature
     ): Expression {
-        expectType(Type.DOT)
+        skip()
         // either field name or method name
         val accessNameT = next()
         val accessName = readAlpha(accessNameT)
@@ -868,7 +892,8 @@ class ParserX(
                         jExpr,
                         method,
                         args,
-                        Signature.signFromJavaClass(method.returnType)
+                        Signature.signFromJavaClass(method.returnType),
+                        false
                     )
                 }
             }
@@ -889,20 +914,28 @@ class ParserX(
             }
         }
 
-        // search for a method with single parameter count
+        var setMethod: Method? = null
+        var getMethod: Method? = null
+        // search for a method with single parameter count and none
         for (method in clazz.methods) {
-            if (method.name == accessName && method.parameterCount == 1) {
-                return JavaMethodCall(
-                    accessNameT,
-                    jExpr,
-                    method,
-                    emptyList(),
-                    Signature.signFromJavaClass(method.returnType)
-                )
+            if (method.name == accessName) {
+                if (method.parameterCount == 0) getMethod = method
+                else if (method.parameterCount == 1) setMethod = method
+                if (getMethod != null && setMethod != null) break
             }
         }
-
-        throw RuntimeException("Could not find property or field '$accessName' on class $clazz")
+        if (setMethod == null && getMethod == null) {
+            throw RuntimeException("Could not find property or field '$accessName' on class $clazz")
+        }
+        val signature = Signature.signFromJavaClass(getMethod?.returnType ?: getMethod!!.parameters[0].type)
+        return JavaPropertyField(
+            accessNameT,
+            jExpr,
+            accessName,
+            getMethod,
+            setMethod,
+            signature
+        )
     }
 
     private fun classElementCall(objExpr: Expression): Expression {
