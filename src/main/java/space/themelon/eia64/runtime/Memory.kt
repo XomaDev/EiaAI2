@@ -1,12 +1,10 @@
 package space.themelon.eia64.runtime
 
 import space.themelon.eia64.expressions.FunctionExpr
-import space.themelon.eia64.runtime.Entity.Companion.getSignature
-import space.themelon.eia64.runtime.Entity.Companion.unbox
 import java.util.*
 import kotlin.collections.ArrayList
 
-class Memory() {
+class Memory {
 
     data class Frame(var fSuper: Frame? = null) {
         var values = ArrayList<Pair<String, Any>>()

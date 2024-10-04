@@ -1,2 +1,4 @@
-Button1.Text = "Why you click me?"
-println(Button1.Text += " You bad boi")
+Button1:Click {
+  Button1.Text = "Why you click me?"
+  println(Button1.Text += " You bad boi")
+}

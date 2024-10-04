@@ -1,5 +1,6 @@
 package space.themelon.eia64
 
+import space.themelon.eia64.runtime.EiaEventDispatcher
 import space.themelon.eia64.runtime.Executor
 
 object TestingEia {
@@ -9,5 +10,10 @@ object TestingEia {
         val executor = Executor()
         executor.defineJavaObject("Button1", Button())
         executor.loadMainFile("/home/kumaraswamy/Documents/AppInv/examples/event.eia")
+        EiaEventDispatcher.dispatchHook(
+            "Button1",
+            "Click",
+            emptyArray(),
+        )
     }
 }

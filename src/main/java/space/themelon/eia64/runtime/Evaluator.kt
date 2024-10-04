@@ -602,6 +602,28 @@ class Evaluator(
         )
     }
 
+    fun dispatchEvent(
+        eventName: String,
+        requiredArgsSignature: List<Pair<String, Signature>>,
+        providedArgs: Array<Any?>,
+        body: Expression
+    ) {
+        if (requiredArgsSignature.size != providedArgs.size) {
+            throw RuntimeException("Expected ${requiredArgsSignature.size} for event $eventName but got ${providedArgs.size}")
+        }
+        memory.enterScope()
+        // translate args to eia
+        for (i in providedArgs.indices) {
+            val argInfo = requiredArgsSignature[i]
+            val name = argInfo.first
+            val signature = argInfo.second
+            val value = providedArgs[i].javaToEia()
+            memory.declareVar(name, Entity(name, true, value, signature))
+        }
+        unboxEval(body)
+        memory.leaveScope()
+    }
+
     // finds associated evaluator for a foreign field (gVariable)
     // that is being accessed
     private fun getEvaluatorForField(propertyAccess: ForeignField): Evaluator {

@@ -11,7 +11,7 @@ object EiaEventDispatcher {
         hooks["$component.$event"] = eventInterface
     }
 
-    fun dispatchHook(component: String, event: String) {
-        hooks["$component.$event"]?.let { it }
+    fun dispatchHook(component: String, event: String, args: Array<Any?>) {
+        hooks["$component.$event"]?.dispatchEvent(args)
     }
 }

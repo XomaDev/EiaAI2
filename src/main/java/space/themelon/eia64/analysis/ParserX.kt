@@ -856,9 +856,24 @@ class ParserX(
         val eventName = readAlpha(where)
         if (!jExpr.sig().isJava())
             throw RuntimeException("Cannot register events on non Java objects")
-        val requiredArgs = if (isNext(Type.OPEN_CURVE)) readRequiredArgs() else emptyList()
-        val scopedBody = autoScopeBody()
-        return EventRegistration(where, jExpr, eventName, requiredArgs, scopedBody)
+        val requiredArgs = mutableListOf<Pair<String, Signature>>()
+        manager.enterScope()
+        if (consumeNext(Type.OPEN_CURVE)) {
+            while (!isEOF() && peek().type != Type.CLOSE_CURVE) {
+                val parameterName = readAlpha()
+                expectType(Type.COLON)
+                val signature = readSignature(next())
+
+                manager.defineVariable(parameterName, true, signature, false)
+                requiredArgs += parameterName to signature
+                if (!isNext(Type.COMMA)) break
+                skip()
+            }
+            expectType(Type.CLOSE_CURVE)
+        }
+        val body = expressions()
+        manager.leaveScope()
+        return EventRegistration(where, jExpr, eventName, requiredArgs, body)
     }
 
     private fun javaCall(
