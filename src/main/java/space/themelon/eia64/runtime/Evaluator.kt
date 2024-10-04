@@ -552,7 +552,7 @@ class Evaluator(
             jObj.name,
             registration.eventName,
             EventInterface(
-                "$jObj.${registration.eventName}",
+                "${jObj.name}.${registration.eventName}",
                 registration.args,
                 registration.body,
                 this@Evaluator

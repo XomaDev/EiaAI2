@@ -13,7 +13,7 @@ object TestingEia {
         EiaEventDispatcher.dispatchHook(
             "Button1",
             "Click",
-            emptyArray(),
+            arrayOf("Meow"),
         )
     }
 }

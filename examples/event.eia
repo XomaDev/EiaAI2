@@ -1,4 +1,4 @@
-Button1:Click {
+Button1:Click(name: String) {
   Button1.Text = "Why you click me?"
-  println(Button1.Text += " You bad boi")
+  println(Button1.Text += " You bad boi " + name)
 }
