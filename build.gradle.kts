@@ -28,6 +28,7 @@ tasks.register<Jar>("fatJar") {
     manifest {
         attributes("Main-Class" to "space.themelon.eia64.Main")
     }
+    archiveFileName.set("Eia64.jar")
     from({
         configurations.compileClasspath.get().filter {
             it.exists()
@@ -37,6 +38,36 @@ tasks.register<Jar>("fatJar") {
     })
     with(tasks.jar.get())
     duplicatesStrategy = DuplicatesStrategy.WARN
+}
+
+tasks.register("makeExtension") {
+    dependsOn("fatJar")
+    val d8Jar = rootProject.file("build-tools/d8.jar")
+
+    val jarFile = "${layout.buildDirectory.get().asFile.absolutePath}/libs/Eia64.jar"
+    val outputDir = rootProject.file("extension-skeleton/assets/")
+    doLast {
+        exec {
+            commandLine(
+                "java",
+                "-cp",
+                d8Jar.absolutePath,
+                "com.android.tools.r8.D8",
+                "--output",
+                outputDir.absolutePath,
+                jarFile
+            )
+        }
+    }
+    finalizedBy("zipStdlib")
+}
+
+tasks.register<Zip>("zipStdlib") {
+    from(rootProject.file("stdlib"))
+    archiveFileName.set("stdlib.zip")
+    destinationDirectory.set(file("${rootProject.projectDir}/extension-skeleton/assets/"))
+
+    finalizedBy(project(":extension").tasks.named("buildExtension"))
 }
 
 kotlin {

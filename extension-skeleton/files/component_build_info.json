@@ -1,0 +1,19 @@
+{
+  "contentProviders": [],
+  "metadata": [],
+  "broadcastReceivers": [],
+  "broadcastReceiver": [],
+  "libraries": [],
+  "services": [],
+  "type": "space.themelon.eiaai2.Eia",
+  "androidMinSdk": [
+    "7"
+  ],
+  "activityMetadata": [],
+  "queries": [],
+  "assets": ["classes.dex", "stdlib.zip"],
+
+  "native": [],
+  "permissions": [],
+  "activities": []
+}
