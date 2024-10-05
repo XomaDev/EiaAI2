@@ -1,3 +1,3 @@
 -keep class space.themelon.eia64.** { *; }
 -keepattributes Signature,InnerClasses,EnclosingMethod
--dontwarn kotlin.**
+-dontwarn **

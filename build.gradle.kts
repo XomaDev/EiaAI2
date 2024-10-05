@@ -14,14 +14,15 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     implementation(kotlin("stdlib-jdk8"))
-
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.2")
+    compileOnly(fileTree("libai2") {
+        include("*.jar")
+    })
 }
 
 tasks.test {
     useJUnitPlatform()
 }
+
 
 tasks.register<Jar>("fatJar") {
     archiveClassifier.set("all")
@@ -31,7 +32,8 @@ tasks.register<Jar>("fatJar") {
     archiveFileName.set("Eia64.jar")
     from({
         configurations.compileClasspath.get().filter {
-            it.exists()
+            // we do not need to include libai2!
+            it.exists() && !it.path.contains("libai2")
         }.map {
             if (it.isDirectory) it else project.zipTree(it)
         }
@@ -73,7 +75,7 @@ tasks.register("d8Eia") {
     val d8Jar = rootProject.file("build-tools/d8.jar")
 
     val jarFile = "${layout.buildDirectory.get().asFile.absolutePath}/libs/Eia64-optimized.jar"
-    val outputFile = rootProject.file("extension-skeleton/assets/eia.jar")
+    val outputFile = rootProject.file("ext-skeleton/assets/eia.jar")
     doLast {
         exec {
             commandLine(
@@ -93,9 +95,9 @@ tasks.register("d8Eia") {
 tasks.register<Zip>("zipStdlib") {
     from(rootProject.file("stdlib"))
     archiveFileName.set("stdlib.zip")
-    destinationDirectory.set(file("${rootProject.projectDir}/extension-skeleton/assets/"))
+    destinationDirectory.set(file("${rootProject.projectDir}/ext-skeleton/assets/"))
 
-    finalizedBy(project(":extension").tasks.named("buildExtension"))
+    finalizedBy(project(":ext-src").tasks.named("buildExtension"))
 }
 
 kotlin {

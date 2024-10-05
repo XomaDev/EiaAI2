@@ -1,11 +1,10 @@
 pluginManagement {
     plugins {
-        kotlin("jvm") version "2.0.0"
+        kotlin("jvm") version "2.0.20"
     }
 }
 plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.5.0"
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
-rootProject.name = "Eia64"
-include("tests")
-include("extension")
+rootProject.name = "e4ai2"
+include("ext-src")
