@@ -52,7 +52,7 @@ public class Eia extends AndroidNonvisibleComponent {
 
   private void copyEiaDex() throws IOException {
     eiaDexFile.delete();
-    InputStream in = form.openAssetForExtension(this, "classes.dex");
+    InputStream in = form.openAssetForExtension(this, "eia.jar");
     try (FileOutputStream fos = new FileOutputStream(eiaDexFile)) {
       eiaDexFile.setReadOnly();
       byte[] buffer = new byte[1024];

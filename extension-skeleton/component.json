@@ -21,7 +21,7 @@
  "version": "1",
  "external": "true",
  "showOnPalette": "true",
- "assets": ["classes.dex", "stdlib.zip"],
+ "assets": ["eia.jar", "stdlib.zip"],
  "name": "Eia",
  "helpString": "Component for Eia",
  "properties": [],

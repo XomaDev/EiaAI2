@@ -32,7 +32,7 @@ tasks.register("d8") {
     val d8Jar = rootProject.file("build-tools/d8.jar")
 
     val jarFile = rootProject.file("extension-skeleton/files/AndroidRuntime.jar")
-    val outputDir = rootProject.file("extension-skeleton/")
+    val outputPath = rootProject.file("extension-skeleton/classes.jar")
 
     doLast {
         exec {
@@ -42,7 +42,7 @@ tasks.register("d8") {
                 d8Jar.absolutePath,
                 "com.android.tools.r8.D8",
                 "--output",
-                outputDir.absolutePath,
+                outputPath.absolutePath,
                 jarFile.absolutePath
             )
         }

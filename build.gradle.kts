@@ -42,10 +42,38 @@ tasks.register<Jar>("fatJar") {
 
 tasks.register("makeExtension") {
     dependsOn("fatJar")
+    // optimize the Eia64.jar using ProGuard config
+    val proguardJar = rootProject.file("build-tools/proguard-7.6.0.jar")
+    val proguardRules = rootProject.file("proguard-rules.pro")
+    val inputJar = layout.buildDirectory.file("libs/Eia64.jar").get().asFile
+    val outputJar = layout.buildDirectory.file("libs/Eia64-optimized.jar").get().asFile
+
+    doLast {
+        exec {
+            commandLine(
+                "java",
+                "-jar",
+                proguardJar.absolutePath,
+                "-injars",
+                inputJar.absolutePath,
+                "-outjars",
+                outputJar.absolutePath,
+                "-libraryjars",
+                "${System.getenv("JAVA_HOME") ?: System.getProperty("java.home")}/jmods/java.base.jmod",
+                "-include",
+                proguardRules.absolutePath
+            )
+        }
+    }
+
+    finalizedBy("d8Eia")
+}
+
+tasks.register("d8Eia") {
     val d8Jar = rootProject.file("build-tools/d8.jar")
 
-    val jarFile = "${layout.buildDirectory.get().asFile.absolutePath}/libs/Eia64.jar"
-    val outputDir = rootProject.file("extension-skeleton/assets/")
+    val jarFile = "${layout.buildDirectory.get().asFile.absolutePath}/libs/Eia64-optimized.jar"
+    val outputFile = rootProject.file("extension-skeleton/assets/eia.jar")
     doLast {
         exec {
             commandLine(
@@ -54,7 +82,7 @@ tasks.register("makeExtension") {
                 d8Jar.absolutePath,
                 "com.android.tools.r8.D8",
                 "--output",
-                outputDir.absolutePath,
+                outputFile.absolutePath,
                 jarFile
             )
         }

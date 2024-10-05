@@ -11,7 +11,7 @@
   ],
   "activityMetadata": [],
   "queries": [],
-  "assets": ["classes.dex", "stdlib.zip"],
+  "assets": ["eia.jar", "stdlib.zip"],
 
   "native": [],
   "permissions": [],
