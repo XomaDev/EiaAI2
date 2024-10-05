@@ -1,0 +1,4 @@
+import space.themelon.hello.Cat
+
+let cat = new Cat("Cheku")
+println(cat.name)

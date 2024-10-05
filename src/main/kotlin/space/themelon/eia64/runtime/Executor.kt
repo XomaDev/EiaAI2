@@ -36,12 +36,12 @@ class Executor {
     private val externalParsers = HashMap<String, ParserX>()
     private val mainParser = ParserX(this)
 
-    val varMap = HashMap<String, EJava>()
-    val varClassMap = HashMap<String, Class<*>>()
+    val javaObjMap = HashMap<String, EJava>()
+    val knownJavaClasses = HashMap<String, Class<*>>()
 
     fun defineJavaObject(name: String, obj: Any) {
-        varMap += name to EJava(obj, name)
-        varClassMap += name to obj.javaClass
+        javaObjMap += name to EJava(obj, name)
+        knownJavaClasses += name to obj.javaClass
     }
 
     fun loadMainFile(sourceFile: String) {

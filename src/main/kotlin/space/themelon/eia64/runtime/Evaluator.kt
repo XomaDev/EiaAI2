@@ -81,7 +81,7 @@ class Evaluator(
 
     override fun alpha(alpha: Alpha) = memory.getVar(alpha.index, alpha.value)
 
-    override fun javaName(jName: JavaName) = executor.varMap[jName.name]
+    override fun javaName(jName: JavaName) = executor.javaObjMap[jName.name]
         ?: throw RuntimeException("Couldn't find Java Object '${jName.name}'")
 
     private fun prepareArrayOf(
@@ -297,10 +297,16 @@ class Evaluator(
         return EBool(true)
     }
 
+    // creating new eia class instances, this feature has been paused for now
     override fun new(new: NewObj): Evaluator {
         val evaluator = executor.newEvaluator(new.name)
         fnInvoke(new.reference.fnExpression!!, evaluateArgs(new.arguments))
         return evaluator
+    }
+
+    override fun newJava(newInstance: NewInstance): Any {
+        val evaldArgs = newInstance.arguments.map { unboxEval(it).eiaToJava() }.toTypedArray()
+        return EJava(newInstance.constructor.newInstance(*evaldArgs), "INSTANCE(${newInstance.packageName})")
     }
 
     // try to call a string() method located in local class if available

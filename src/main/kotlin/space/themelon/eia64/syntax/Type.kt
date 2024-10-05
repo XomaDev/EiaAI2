@@ -48,7 +48,7 @@ enum class Type {
     FUN,
     ARRAY_OF, MAKE_ARRAY,
     COPY, TIME, RAND, PRINT, PRINTLN, READ, READLN, LEN, SLEEP, FORMAT, EXIT, MEM_CLEAR,
-    INCLUDE, STD, STATIC, NEW,
+    INCLUDE, IMPORT, STD, STATIC, NEW,
     THROW, TRY, CATCH,
 
     RETURN, BREAK, CONTINUE,
@@ -169,6 +169,9 @@ enum class Type {
                 it["std"] = StaticToken(STD)
                 it["static"] = StaticToken(STATIC)
                 it["include"] = StaticToken(INCLUDE)
+
+                it["import"] = StaticToken(IMPORT)
+
                 it["new"] = StaticToken(NEW)
                 it["throw"] = StaticToken(THROW)
                 it["try"] = StaticToken(TRY)

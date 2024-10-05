@@ -32,30 +32,11 @@ class ParserX(
 
         val expressions = ArrayList<Expression>()
         parseScopeOutline()
-        while (!isEOF()) expressions.add(parseStatement())
+        while (!isEOF()) parseStatement().let { if (it !is DiscardExpression) expressions += it }
         if (Executor.DEBUG) expressions.forEach { println(it) }
         parsed = ExpressionList(expressions)
         parsed.sig() // necessary
         return parsed
-    }
-
-    // This shall not be used for now, since it interferes with live mode and
-    // easy access; when language is very mature, then we shall enable it
-    private fun parseClass(): Expression {
-        val token = next()
-        if (token.flags.isNotEmpty()) {
-            when (token.flags[0]) {
-                Flag.V_KEYWORD -> return variableDeclaration(false, token)
-                Flag.MODIFIER -> return handleModifier(token)
-                else -> { }
-            }
-        }
-        when (token.type) {
-            Type.FUN -> return fnDeclaration()
-            Type.INCLUDE -> return includeStatement()
-            else -> { }
-        }
-        return token.error("Unexpected token")
     }
 
 
@@ -77,6 +58,7 @@ class ParserX(
             Type.SHADO -> shadoDeclaration()
             Type.NEW -> newStatement(token)
             Type.INCLUDE -> includeStatement()
+            Type.IMPORT -> importStatement()
             Type.WHEN -> whenStatement(token)
             Type.THROW -> throwStatement(token)
             Type.TRY -> tryCatchStatement(token)
@@ -102,6 +84,7 @@ class ParserX(
             Type.FUN,
             Type.STD,
             Type.INCLUDE,
+            Type.IMPORT,
             Type.NEW,
             Type.THROW,
             Type.TRY,
@@ -169,6 +152,19 @@ class ParserX(
         manager.leaveScope()
 
         return TryCatch(token, tryBlock, catchIdentifier, catchBody)
+    }
+
+    private fun importStatement(): Expression {
+        val pkgNameParts = ArrayList<String>()
+        pkgNameParts += readAlpha()
+        while (consumeNext(Type.DOT)) {
+            pkgNameParts += readAlpha()
+        }
+        val clazz = Class.forName(pkgNameParts.joinToString("."))
+        executor.knownJavaClasses += clazz.simpleName to clazz
+
+        // there's nothing to do at runtime
+        return DiscardExpression()
     }
 
     private fun includeStatement(): Expression {
@@ -245,20 +241,25 @@ class ParserX(
         if (path.startsWith('/')) File(path)
         else File("${Executor.EXECUTION_DIRECTORY}/$path")
 
-    private fun newStatement(token: Token): NewObj {
-        val module = readAlpha()
-        val arguments = callArguments()
-        val argsSize = arguments.size
+    // this function was repurposed for making java instances
+    private fun newStatement(token: Token): Expression {
+        val name = readAlpha()
+        val clazz = executor.knownJavaClasses[name]
+            ?: token.error("Cannot find symbol '$name'")
+        expectType(Type.OPEN_CURVE)
+        val args = parseArguments()
+        expectType(Type.CLOSE_CURVE)
 
-        val reference = executor.getModule(module).resolveGlobalFn(token, "init", argsSize)
-        if (reference == null) {
-            token.error<String>("Could not find init(${arguments.toSignString()}) function")
-            throw RuntimeException() // never reached
-        }
-        return NewObj(token,
-            module,
-            arguments,
-            reference
+        // now we have to find a suitable constructor,
+        // it's not very sophisticated though, but it does the work (for now?)
+        val constructor = clazz.constructors.find { it.parameterCount == args.size }
+            ?: token.error("Could not find constructor of args size ${args.size}")
+        return NewInstance(
+            token,
+            clazz,
+            clazz.name,
+            constructor,
+            args
         )
     }
 
@@ -1222,13 +1223,13 @@ class ParserX(
             // probably referencing a method from an outer class
                 Alpha(token, -2, name, Sign.NONE)
             else {
-                val envObj = executor.varMap[name]
+                val envObj = executor.javaObjMap[name]
                 if (envObj == null) {
                     // Unresolved name
                     token.error("Cannot find symbol '$name'")
                 } else {
                     // java object access :)
-                    JavaName(token, name, JavaObjectSign(executor.varClassMap[name]!!))
+                    JavaName(token, name, JavaObjectSign(executor.knownJavaClasses[name]!!))
                 }
             }
         } else {

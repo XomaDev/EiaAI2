@@ -52,6 +52,7 @@ abstract class Expression(
         fun function(function: FunctionExpr): R
         fun arrayAccess(access: ArrayAccess): R
 
+        fun newJava(newInstance: NewInstance): R
         fun javaName(jName: JavaName): R
         fun javaFieldAccess(access: JavaFieldAccess): R
         fun javaMethodCall(jCall: JavaMethodCall): R

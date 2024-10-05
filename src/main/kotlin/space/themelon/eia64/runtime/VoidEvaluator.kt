@@ -167,6 +167,10 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
+    override fun newJava(newInstance: NewInstance): Any {
+        throw ShutdownException()
+    }
+
     override fun javaPropertyField(jProperty: JavaPropertyField): Any {
         throw ShutdownException()
     }
