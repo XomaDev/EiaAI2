@@ -73,6 +73,7 @@ class Lexer(private val source: String) {
             '}' -> createOp("}")
             '\'' -> parseChar()
             '"' -> parseString()
+            '#' -> parseHexColor()
             else -> {
                 if (isAlpha(char)) parseAlpha(char)
                 else if (isNumeric(char)) {
@@ -165,11 +166,36 @@ class Lexer(private val source: String) {
             value)
     }
 
+    private fun parseHexColor(): Token {
+        val hexCode = StringBuilder()
+        hexCode.append(next())
+        for (i in 0 until 6) {
+            if (isAlpha(peek()) || isNumeric(peek())) hexCode.append(next())
+            else break
+        }
+        val parsed = try {
+            when (hexCode.length) {
+                6 -> hexCode.toString().toInt(16) or 0xFF000000.toInt()
+                8 -> hexCode.toString().toInt(16)
+                else -> reportError("Invalid hex color format `#$hexCode`")
+            }
+        } catch (e: NumberFormatException) {
+            reportError("Invalid hex color format `#$hexCode`")
+        }
+        // rebrand it as an integer
+        return Token(
+            line,
+            E_INT,
+            arrayOf(Flag.VALUE, Flag.CONSTANT_VALUE),
+            parsed
+        )
+    }
+
     private fun isNumeric(c: Char) = c in '0'..'9'
     private fun isAlpha(c: Char) = (c in 'a'..'z' || c in 'A'..'Z') || c == '_'
 
     private fun reportError(message: String) {
-        println("[line $line] $message")
+        throw RuntimeException("[line $line] $message")
     }
 
     private fun isEOF() = index == source.length

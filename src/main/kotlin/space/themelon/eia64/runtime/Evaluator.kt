@@ -590,7 +590,7 @@ class Evaluator(
         return Nothing.INSTANCE
     }
 
-    fun dispatchEvent(
+    private fun dispatchEvent(
         eventName: String,
         requiredArgsSignature: List<Pair<String, Signature>>,
         providedArgs: Array<Any?>,

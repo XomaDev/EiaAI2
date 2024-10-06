@@ -10,6 +10,5 @@ object TestingEia {
         val executor = Executor()
         executor.defineJavaObject("Cat1", Cat("Meow"))
         executor.loadMainSource(javaClass.classLoader.getResource("hi.txt").readText())
-        EiaEventDispatcher.dispatchHook("Cat1", "Meow", emptyArray())
     }
 }

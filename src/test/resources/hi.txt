@@ -1,3 +1,2 @@
-Button1:Click {
-  println("Hello, World!")
-}
+let black = #FFZFFF
+println(black)
