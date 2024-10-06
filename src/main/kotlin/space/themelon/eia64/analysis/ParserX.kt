@@ -64,7 +64,7 @@ class ParserX(
             Type.NEW -> newStatement(token)
             Type.INCLUDE -> includeStatement()
             Type.IMPORT -> importStatement()
-            Type.WHEN -> whenStatement(token)
+            //Type.WHEN -> whenStatement(token)
             Type.THROW -> throwStatement(token)
             Type.TRY -> tryCatchStatement(token)
             else -> {
@@ -93,8 +93,8 @@ class ParserX(
             Type.NEW,
             Type.THROW,
             Type.TRY,
-            Type.SHADO,
-            Type.WHEN -> true
+            Type.SHADO -> true
+            //Type.WHEN -> true
             else -> false
         }
     }
@@ -1243,14 +1243,29 @@ class ParserX(
         val constructor = clazz.getConstructor(ComponentContainer::class.java)
 
         val props = ArrayList<Pair<Method, Expression>>()
+        // registered events
+        // Map < EventName > = Pair < List<ArgSignature>, Expression >
+        val events = HashMap<String, Pair<List<Pair<String, Signature>>, Expression>>()
         val children = ArrayList<Struct>()
+
+        val identifier = if (isNext(Type.ALPHA)) readAlpha() else clazz.simpleName + System.currentTimeMillis()
 
         expectType(Type.OPEN_CURLY)
         while (!isNext(Type.CLOSE_CURLY)) {
             if (consumeNext(Type.AT)) {
                 children += parseStruct()
+                continue
+            }
+            val propNameToken = next()
+            if (propNameToken.type == Type.WHEN) {
+                expectType(Type.DOT)
+                // event registration
+                val eventName = readAlpha()
+                val args = if (isNext(Type.OPEN_CURVE)) readRequiredArgs() else emptyList()
+                expectType(Type.COLON)
+                val body = parseElement()
+                events += eventName to (args to body)
             } else {
-                val propNameToken = next()
                 val propName = readAlpha(propNameToken)
                 val method = clazz.methods.find { it.name == propName && it.parameterCount == 1 }
                     ?: propNameToken.error("Could not find property name '$propName' on component '$name'")
@@ -1258,15 +1273,17 @@ class ParserX(
                 val propValue = parseStatement()
                 props += method to propValue
 
-                // comma for only props, not required after children
-                if (!consumeNext(Type.COMMA)) break
             }
+            if (!consumeNext(Type.COMMA)) break
         }
         expectType(Type.CLOSE_CURLY)
+
         return Struct(
+            identifier,
             name,
             constructor,
             props,
+            events,
             children
         )
     }

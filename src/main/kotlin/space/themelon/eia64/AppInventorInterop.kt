@@ -5,6 +5,7 @@ package space.themelon.eia64
 import android.util.Log
 import com.google.appinventor.components.runtime.AndroidViewComponent
 import com.google.appinventor.components.runtime.Component
+import com.google.appinventor.components.runtime.EventDispatcher
 import com.google.appinventor.components.runtime.Form
 import gnu.mapping.Environment
 import gnu.mapping.ProcedureN
@@ -80,20 +81,27 @@ object AppInventorInterop {
     }
 
     // internal use only
+    fun registerComponent(
+        name: String,
+        component: Component,
+    ) {
+        environment.put(SimpleSymbol(name), component)
+    }
+
+    // internal use only
     fun proxyEvent(
         component: String,
         event: String,
-        callback: (Array<Any?>) -> Boolean
+        callback: (Array<Any?>) -> Unit
     ) {
         val symbol = SimpleSymbol.valueOf("$component\$$event")
-        val oldCallback = environment[symbol] as ProcedureN?
         environment.put(symbol, object: ProcedureN() {
             override fun applyN(eventArgs: Array<Any?>): Any? {
-                if (callback(eventArgs))
-                    oldCallback?.let { return it.applyN(eventArgs) }
+                callback(eventArgs)
                 return Values.empty
             }
         })
+        EventDispatcher.registerEventForDelegation(form, component, event)
     }
 
     fun execute(source: String): Array<Any> {

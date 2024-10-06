@@ -95,18 +95,27 @@ class Evaluator(
         struct: Struct
     ): AndroidViewComponent {
         val component = struct.constructor.newInstance(parent) as AndroidViewComponent
-        struct.props.forEach {
-            it.first.invoke(
-                component,
-                unboxEval(it.second).eiaToJava()
-            )
+        AppInventorInterop.registerComponent(struct.identifier, component)
+
+        struct.props.forEach { it.first.invoke(component, unboxEval(it.second).eiaToJava()) }
+
+        val componentName = struct.identifier
+        struct.events.forEach { eventInfo ->
+            val dispatchInfo = eventInfo.value
+            AppInventorInterop.proxyEvent(
+                componentName,
+                eventInfo.key,
+            ) { args ->
+                dispatchEvent(
+                    componentName,
+                    dispatchInfo.first,
+                    args,
+                    dispatchInfo.second,
+                )
+                true
+            }
         }
-        struct.children.forEach {
-            makeViewComponent(
-                component,
-                it
-            )
-        }
+        struct.children.forEach { makeViewComponent(component, it) }
         return component
     }
 
