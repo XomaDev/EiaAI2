@@ -190,4 +190,8 @@ class VoidEvaluator() : Expression.Visitor<Any> {
     override fun eventRegistration(registration: EventRegistration): Any {
         throw ShutdownException()
     }
+
+    override fun struct(struct: Struct): Any {
+        throw RuntimeException()
+    }
 }

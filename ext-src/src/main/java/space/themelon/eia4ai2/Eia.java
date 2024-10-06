@@ -6,6 +6,7 @@ import com.google.appinventor.components.annotations.SimpleFunction;
 import com.google.appinventor.components.annotations.SimpleObject;
 import com.google.appinventor.components.common.ComponentCategory;
 import com.google.appinventor.components.runtime.AndroidNonvisibleComponent;
+import com.google.appinventor.components.runtime.AndroidViewComponent;
 import com.google.appinventor.components.runtime.EventDispatcher;
 import com.google.appinventor.components.runtime.Form;
 import com.google.appinventor.components.runtime.util.OnInitializeListener;
@@ -31,6 +32,7 @@ public class Eia extends AndroidNonvisibleComponent implements OnInitializeListe
 
   private Object initInstance;
   private Method executeMethod;
+  private Method renderMethod;
 
   public Eia(Form form) throws IOException {
     super(form);
@@ -61,7 +63,9 @@ public class Eia extends AndroidNonvisibleComponent implements OnInitializeListe
     initInstance = clazz.getField("INSTANCE").get(null);
     Class<?> interopClazz = initInstance.getClass();
     interopClazz.getMethod("init", Object.class).invoke(initInstance, this);
+
     executeMethod = interopClazz.getMethod("execute", String.class);
+    renderMethod = interopClazz.getMethod("render", AndroidViewComponent.class, String.class);
   }
 
   private void copyEiaDex() throws IOException {
@@ -85,6 +89,11 @@ public class Eia extends AndroidNonvisibleComponent implements OnInitializeListe
     Object[] values = (Object[]) executeMethod.invoke(initInstance, code);
     Print(new String((byte[]) values[1]));
     return values[0].toString();
+  }
+
+  @SimpleFunction
+  public void Render(AndroidViewComponent in, String struct) throws ReflectiveOperationException {
+    renderMethod.invoke(initInstance, in, struct);
   }
 
   @SimpleEvent

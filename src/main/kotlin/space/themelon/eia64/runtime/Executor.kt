@@ -1,6 +1,10 @@
 package space.themelon.eia64.runtime
 
+import com.google.appinventor.components.runtime.AndroidViewComponent
+import space.themelon.eia64.Expression
 import space.themelon.eia64.analysis.ParserX
+import space.themelon.eia64.expressions.ExpressionList
+import space.themelon.eia64.expressions.Struct
 import space.themelon.eia64.primitives.EJava
 import space.themelon.eia64.syntax.Lexer
 import space.themelon.eia64.syntax.Token
@@ -44,30 +48,11 @@ class Executor {
         knownJavaClasses += name to obj.javaClass
     }
 
-    fun loadMainFile(sourceFile: String) {
-        try {
-            mainParser.parse(getTokens(sourceFile))?.let { mainEvaluator.mainEval(it) }
-        } catch (e: ShutdownException) {
-            standardOutput.println("Executor was shutdown")
-        }
-    }
+    fun parse(source: String) = mainParser.parse(Lexer(source).tokens)
+    fun parse(file: File) = parse(file.readText())
 
-    fun loadMainSource(source: String): Any {
-        try {
-            val tokens = mainParser.parse(Lexer(source).tokens)
-            return tokens?.let { mainEvaluator.eval(it) } ?: Nothing.INSTANCE
-        } catch (e: ShutdownException) {
-            throw RuntimeException("Executor was shutdown")
-        }
-    }
-
-    fun loadMainTokens(tokens: List<Token>): Any {
-        try {
-            return mainParser.parse(tokens)?.let { mainEvaluator.eval(it) } ?: Nothing.INSTANCE
-        } catch (e: ShutdownException) {
-            throw RuntimeException("Executor was shutdown")
-        }
-    }
+    fun evaluate(expressions: ExpressionList) = mainEvaluator.eval(expressions)
+    fun render(parent: AndroidViewComponent, struct: Struct) = mainEvaluator.render(parent, struct)
 
     // this can be used to enforce restriction on the execution time
     // of the program, while in demonstration environments

@@ -18,7 +18,7 @@ enum class Type {
     RIGHT_ARROW,
 
     SEMI_COLON, COLON, DOUBLE_COLON,
-    HASH, // for color codes
+    AT, // for color codes
     ASSIGNMENT,
     ADDITIVE_ASSIGNMENT, DEDUCTIVE_ASSIGNMENT,
     MULTIPLICATIVE_ASSIGNMENT, DIVIDIVE_ASSIGNMENT, REMAINDER_ASSIGNMENT,
@@ -105,6 +105,8 @@ enum class Type {
                 it[";"] = StaticToken(SEMI_COLON)
                 it[":"] = StaticToken(COLON)
                 it["::"] = StaticToken(DOUBLE_COLON)
+
+                it["@"] = StaticToken(AT, arrayOf(Flag.VALUE))
 
                 it["["] = StaticToken(OPEN_SQUARE, arrayOf(Flag.NONE))
                 it["]"] = StaticToken(CLOSE_SQUARE, arrayOf(Flag.NONE))

@@ -1,5 +1,10 @@
 package space.themelon.eia64.runtime
 
+import com.google.appinventor.components.runtime.AndroidViewComponent
+import com.google.appinventor.components.runtime.Component
+import com.google.appinventor.components.runtime.ComponentContainer
+import com.google.appinventor.components.runtime.Form
+import org.json.JSONObject
 import space.themelon.eia64.AppInventorInterop
 import space.themelon.eia64.Expression
 import space.themelon.eia64.expressions.*
@@ -33,18 +38,12 @@ class Evaluator(
         evaluator = VoidEvaluator()
     }
 
-    fun mainEval(expr: Expression): Any {
-        val normalEvaluated = eval(expr)
-        val mainEvaluated = dynamicFnCall(
-            "main",
-            emptyArray(),
-            true, ""
-        )
-        if (mainEvaluated == null || mainEvaluated == "") return normalEvaluated
-        return mainEvaluated
-    }
-
     fun eval(expr: Expression) = expr.accept(evaluator)
+
+    fun render(
+        parent: AndroidViewComponent,
+        struct: Struct
+    ) = makeViewComponent(parent, struct)
 
     private fun unboxEval(expr: Expression) = unbox(eval(expr))
 
@@ -86,6 +85,30 @@ class Evaluator(
 
     override fun javaName(jName: JavaName) = executor.javaObjMap[jName.name]
         ?: throw RuntimeException("Couldn't find Java Object '${jName.name}'")
+
+    override fun struct(struct: Struct): EJava {
+        return EJava(makeViewComponent(Form.getActiveForm(), struct), "Struct<${struct.name}>")
+    }
+
+    private fun makeViewComponent(
+        parent: Any,
+        struct: Struct
+    ): AndroidViewComponent {
+        val component = struct.constructor.newInstance(parent) as AndroidViewComponent
+        struct.props.forEach {
+            it.first.invoke(
+                component,
+                unboxEval(it.second).eiaToJava()
+            )
+        }
+        struct.children.forEach {
+            makeViewComponent(
+                component,
+                it
+            )
+        }
+        return component
+    }
 
     private fun prepareArrayOf(
         arguments: List<Expression>,

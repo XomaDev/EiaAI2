@@ -1,5 +1,6 @@
 package space.themelon.eia64.analysis
 
+import com.google.appinventor.components.runtime.ComponentContainer
 import space.themelon.eia64.Expression
 import space.themelon.eia64.expressions.*
 import space.themelon.eia64.expressions.ArrayLiteral
@@ -16,6 +17,10 @@ import java.util.StringJoiner
 class ParserX(
     private val executor: Executor,
 ) {
+
+    companion object {
+        val COMPONENTS_PACKAGE = "com.google.appinventor.components.runtime."
+    }
 
     private val manager = ScopeManager()
 
@@ -1204,6 +1209,7 @@ class ParserX(
             Type.E_FLOAT -> FloatLiteral(token, token.data as Float)
             Type.E_STRING -> StringLiteral(token, token.data as String)
             Type.E_CHAR -> CharLiteral(token, token.data as Char)
+            Type.AT -> parseStruct()
             Type.ALPHA -> verifyAlpha(token)
             Type.CLASS_VALUE -> parseType(token)
 
@@ -1215,6 +1221,54 @@ class ParserX(
 
             else -> token.error("Unknown token type")
         }
+    }
+
+    /*
+     * @VerticalArrangement {
+     *   @Button {
+     *     Text: "Accept",
+     *     Width: fill_parent,
+     *     whenClick: { Notifier1.ShowAlert("thank you") }
+     *   }
+     *   @Button {
+     *      Text: "Decline",
+     *      Width: fill_parent,
+     *      whenClick: { Notifier1.ShowAlert("why bro") }
+     *   }
+     * }
+     */
+    private fun parseStruct(): Struct {
+        val name = readAlpha()
+        val clazz = Class.forName(COMPONENTS_PACKAGE + name)
+        val constructor = clazz.getConstructor(ComponentContainer::class.java)
+
+        val props = ArrayList<Pair<Method, Expression>>()
+        val children = ArrayList<Struct>()
+
+        expectType(Type.OPEN_CURLY)
+        while (!isNext(Type.CLOSE_CURLY)) {
+            if (consumeNext(Type.AT)) {
+                children += parseStruct()
+            } else {
+                val propNameToken = next()
+                val propName = readAlpha(propNameToken)
+                val method = clazz.methods.find { it.name == propName && it.parameterCount == 1 }
+                    ?: propNameToken.error("Could not find property name '$propName' on component '$name'")
+                expectType(Type.COLON)
+                val propValue = parseStatement()
+                props += method to propValue
+
+                // comma for only props, not required after children
+                if (!consumeNext(Type.COMMA)) break
+            }
+        }
+        expectType(Type.CLOSE_CURLY)
+        return Struct(
+            name,
+            constructor,
+            props,
+            children
+        )
     }
 
     private fun verifyAlpha(token: Token): Expression {

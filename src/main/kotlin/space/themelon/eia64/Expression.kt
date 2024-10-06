@@ -58,6 +58,8 @@ abstract class Expression(
         fun javaMethodCall(jCall: JavaMethodCall): R
         fun javaPropertyField(jProperty: JavaPropertyField): R
         fun eventRegistration(registration: EventRegistration): R
+
+        fun struct(struct: Struct): R
     }
 
     abstract fun <R> accept(v: Visitor<R>): R

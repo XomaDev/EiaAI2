@@ -1,2 +1,15 @@
-let black = #FFZFFF
-println(black)
+@VerticalArrangement {
+  Width: -1,
+
+  @Button {
+    Text: "Accept",
+    WidthPercent: 100,
+    onClick: Notifier1.ShowAlert("Accept clicked")
+  }
+
+  @Button {
+    Text: "Decline",
+    WidthPercent: 100,
+    onClick: Notifier1.ShowAlert("Decline clicked")
+  }
+}

@@ -3,13 +3,16 @@
 package space.themelon.eia64
 
 import android.util.Log
+import com.google.appinventor.components.runtime.AndroidViewComponent
 import com.google.appinventor.components.runtime.Component
 import com.google.appinventor.components.runtime.Form
 import gnu.mapping.Environment
 import gnu.mapping.ProcedureN
 import gnu.mapping.SimpleSymbol
 import gnu.mapping.Values
+import space.themelon.eia64.expressions.Struct
 import space.themelon.eia64.runtime.Executor
+import space.themelon.eia64.runtime.Nothing
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -76,6 +79,7 @@ object AppInventorInterop {
         return components
     }
 
+    // internal use only
     fun proxyEvent(
         component: String,
         event: String,
@@ -94,7 +98,22 @@ object AppInventorInterop {
 
     fun execute(source: String): Array<Any> {
         val bytes = stdout.toByteArray()
-        stdout.reset()
-        return arrayOf(executor!!.loadMainSource(source), bytes)
+        val parsed = executor?.parse(source)
+        val evaluated = parsed?.let { executor?.evaluate(it) } ?: Nothing.INSTANCE
+        return arrayOf(evaluated, bytes)
+    }
+
+    fun render(
+        parent: AndroidViewComponent,
+        source: String,
+    ) {
+        val parsed = executor?.parse(source)
+            ?: throw RuntimeException("Cannot render from a non struct")
+        parsed.expressions.forEach {
+            if (it !is Struct) {
+                throw RuntimeException("Expected a struct expression to render but got " + it.javaClass.simpleName)
+            }
+            executor?.render(parent, it)
+        }
     }
 }
