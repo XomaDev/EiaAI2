@@ -8,6 +8,7 @@ import com.google.appinventor.components.common.ComponentCategory;
 import com.google.appinventor.components.runtime.AndroidNonvisibleComponent;
 import com.google.appinventor.components.runtime.EventDispatcher;
 import com.google.appinventor.components.runtime.Form;
+import com.google.appinventor.components.runtime.util.OnInitializeListener;
 import dalvik.system.DexClassLoader;
 
 import java.io.File;
@@ -24,26 +25,43 @@ import java.lang.reflect.Method;
     nonVisible = true
 )
 @SimpleObject(external = true)
-public class Eia extends AndroidNonvisibleComponent {
+public class Eia extends AndroidNonvisibleComponent implements OnInitializeListener {
 
   private final File eiaDexFile;
 
-  private final Object initInstance;
-  private final Method executeMethod;
+  private Object initInstance;
+  private Method executeMethod;
 
-  public Eia(Form form) throws IOException, ReflectiveOperationException {
+  public Eia(Form form) throws IOException {
     super(form);
     eiaDexFile = new File(form.getFilesDir(), "eia-dex.jar");
     copyEiaDex();
+    form.registerForOnInitialize(this);
+  }
+
+  @Override
+  public void onInitialize() {
+    // We need to only initialize Eia over here, so that we get to map
+    // all the components in the Screen
+    try {
+      loadEia();
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void loadEia() throws ReflectiveOperationException {
     DexClassLoader dexLoader = new DexClassLoader(
         eiaDexFile.getAbsolutePath(),
         form.getCodeCacheDir().getAbsolutePath(),
         null,
         getClass().getClassLoader()
     );
-    Class<?> clazz = dexLoader.loadClass("space.themelon.eia64.Initialize");
-    initInstance = clazz.getConstructors()[0].newInstance(this);
-    executeMethod = clazz.getMethod("execute", String.class);
+    Class<?> clazz = dexLoader.loadClass("space.themelon.eia64.AppInventorInterop");
+    initInstance = clazz.getField("INSTANCE").get(null);
+    Class<?> interopClazz = initInstance.getClass();
+    interopClazz.getMethod("init", Object.class).invoke(initInstance, this);
+    executeMethod = interopClazz.getMethod("execute", String.class);
   }
 
   private void copyEiaDex() throws IOException {
@@ -73,4 +91,5 @@ public class Eia extends AndroidNonvisibleComponent {
   public void Print(String text) {
     EventDispatcher.dispatchEvent(this, "Print", text);
   }
+
 }

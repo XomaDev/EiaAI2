@@ -1,4 +1,3 @@
-import space.themelon.hello.Cat
-
-let cat = new Cat("Cheku")
-println(cat.name)
+Button1:Click {
+  println("Hello, World!")
+}

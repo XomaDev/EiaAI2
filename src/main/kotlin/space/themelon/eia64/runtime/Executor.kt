@@ -46,7 +46,7 @@ class Executor {
 
     fun loadMainFile(sourceFile: String) {
         try {
-            mainEvaluator.mainEval(mainParser.parse(getTokens(sourceFile)))
+            mainParser.parse(getTokens(sourceFile))?.let { mainEvaluator.mainEval(it) }
         } catch (e: ShutdownException) {
             standardOutput.println("Executor was shutdown")
         }
@@ -55,7 +55,7 @@ class Executor {
     fun loadMainSource(source: String): Any {
         try {
             val tokens = mainParser.parse(Lexer(source).tokens)
-            return mainEvaluator.eval(tokens)
+            return tokens?.let { mainEvaluator.eval(it) } ?: Nothing.INSTANCE
         } catch (e: ShutdownException) {
             throw RuntimeException("Executor was shutdown")
         }
@@ -63,7 +63,7 @@ class Executor {
 
     fun loadMainTokens(tokens: List<Token>): Any {
         try {
-            return mainEvaluator.eval(mainParser.parse(tokens))
+            return mainParser.parse(tokens)?.let { mainEvaluator.eval(it) } ?: Nothing.INSTANCE
         } catch (e: ShutdownException) {
             throw RuntimeException("Executor was shutdown")
         }

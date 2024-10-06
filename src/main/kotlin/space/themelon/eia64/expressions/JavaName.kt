@@ -7,6 +7,7 @@ import space.themelon.eia64.syntax.Token
 data class JavaName(
     val where: Token,
     val name: String,
+    val static: Boolean,
     val signature: Signature
 ): Expression(where) {
     override fun <R> accept(v: Visitor<R>) = v.javaName(this)

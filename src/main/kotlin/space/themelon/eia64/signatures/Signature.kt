@@ -21,7 +21,7 @@ abstract class Signature {
                 "char" -> Sign.CHAR
                 "java.lang.String" -> Sign.STRING
                 "void" -> Sign.NONE
-                else -> throw RuntimeException("Unknown Java class $clazz")
+                else -> JavaObjectSign(clazz)
             }
         }
     }

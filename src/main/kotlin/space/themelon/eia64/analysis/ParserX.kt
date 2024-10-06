@@ -25,7 +25,7 @@ class ParserX(
 
     lateinit var parsed: ExpressionList
 
-    fun parse(tokens: List<Token>): ExpressionList {
+    fun parse(tokens: List<Token>): ExpressionList? {
         index = 0
         size = tokens.size
         this.tokens = tokens
@@ -33,9 +33,9 @@ class ParserX(
         val expressions = ArrayList<Expression>()
         parseScopeOutline()
         while (!isEOF()) parseStatement().let { if (it !is DiscardExpression) expressions += it }
+        if (expressions.isEmpty()) return null
         if (Executor.DEBUG) expressions.forEach { println(it) }
         parsed = ExpressionList(expressions)
-        parsed.sig() // necessary
         return parsed
     }
 
@@ -881,6 +881,8 @@ class ParserX(
         jExpr: Expression,
         jSig: Signature
     ): Expression {
+        // we gotta adopt it to support objects too!
+
         skip()
         // either field name or method name
         val accessNameT = next()
@@ -900,9 +902,14 @@ class ParserX(
             val args = parseArguments()
             expectType(Type.CLOSE_CURVE)
 
+            val argTypes = args.map { it.sig() }
+
             val argsSize = args.size
             for (method in clazz.methods) {
-                if (method.name == accessName && method.parameterCount == argsSize) {
+                if (method.name == accessName
+                    && method.parameterCount == argsSize
+                    && method.parameterTypes.map { Signature.signFromJavaClass(it) } == argTypes
+                    ) {
                     return JavaMethodCall(
                         accessNameT,
                         jExpr,
@@ -1224,12 +1231,17 @@ class ParserX(
                 Alpha(token, -2, name, Sign.NONE)
             else {
                 val envObj = executor.javaObjMap[name]
-                if (envObj == null) {
-                    // Unresolved name
-                    token.error("Cannot find symbol '$name'")
-                } else {
+                if (envObj != null) {
                     // java object access :)
-                    JavaName(token, name, JavaObjectSign(executor.knownJavaClasses[name]!!))
+                    JavaName(token, name, false, JavaObjectSign(executor.knownJavaClasses[name]!!))
+                } else {
+                    val staticClass = executor.knownJavaClasses[name]
+                    if (staticClass != null) {
+                        JavaName(token, name, true, JavaObjectSign(executor.knownJavaClasses[name]!!))
+                    } else {
+                        // Unresolved name
+                        token.error("Cannot find symbol '$name'")
+                    }
                 }
             }
         } else {
