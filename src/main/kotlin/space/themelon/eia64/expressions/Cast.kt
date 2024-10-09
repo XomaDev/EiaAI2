@@ -34,22 +34,6 @@ data class Cast(
                 where.error<String>("Cannot cast class $gotClass into $expectClass")
             }
             return expectSignature
-        } else if (expectSignature is ArrayExtension) {
-            // Cast attempt from Array (raw) to Array<N>
-            if (exprSign == Sign.ARRAY) return expectSignature
-            if (exprSign !is ArrayExtension) {
-                where.error<String>("Cannot cast $expr into array type $exprSign")
-                throw RuntimeException()
-            }
-            val castArrayType = expectSignature.elementSignature
-            val currentArrayType = exprSign.elementSignature
-            if (!matches(currentArrayType,  castArrayType)) {
-                where.error<String>("Cannot cast array element type $currentArrayType into $castArrayType")
-            }
-            return expectSignature
-        } else if (expectSignature == Sign.ARRAY) {
-            // Cast from Array<N> to Array
-            if (exprSign is ArrayExtension || exprSign == Sign.ARRAY) return expectSignature
         } else if (expectSignature == Sign.OBJECT) {
             if (exprSign is ObjectExtension || exprSign == Sign.OBJECT) return expectSignature
         } else if (expectSignature == Sign.NUM) {

@@ -1,7 +1,6 @@
 package space.themelon.eia64
 
 import space.themelon.eia64.expressions.*
-import space.themelon.eia64.expressions.ArrayLiteral
 import space.themelon.eia64.expressions.FunctionExpr
 import space.themelon.eia64.signatures.Signature
 import space.themelon.eia64.syntax.Token
@@ -20,9 +19,6 @@ abstract class Expression(
         fun charLiteral(literal: CharLiteral): R
         fun typeLiteral(literal: TypeLiteral): R
         fun alpha(alpha: Alpha): R
-        fun array(literal: ArrayLiteral): R
-        fun explicitArrayLiteral(arrayCreation: ExplicitArrayLiteral): R
-        fun arrayAllocation(arrayAllocation: ArrayAllocation): R
         fun include(include: Include): R
         fun new(new: NewObj): R
         fun throwExpr(throwExpr: ThrowExpr): R
@@ -48,7 +44,6 @@ abstract class Expression(
         fun interruption(interruption: Interruption): R
         fun ifFunction(ifExpr: IfStatement): R
         fun function(function: FunctionExpr): R
-        fun arrayAccess(access: ArrayAccess): R
 
         fun newJava(newInstance: NewInstance): R
         fun javaName(jName: JavaName): R

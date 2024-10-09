@@ -43,18 +43,6 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
-    override fun explicitArrayLiteral(arrayCreation: ExplicitArrayLiteral): Any {
-        throw ShutdownException()
-    }
-
-    override fun arrayAllocation(arrayAllocation: ArrayAllocation): Any {
-        throw ShutdownException()
-    }
-
-    override fun array(literal: ArrayLiteral): Any {
-        throw ShutdownException()
-    }
-
     override fun include(include: Include): Any {
         throw ShutdownException()
     }
@@ -155,9 +143,6 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
-    override fun arrayAccess(access: ArrayAccess): Any {
-        throw ShutdownException()
-    }
 
     override fun newJava(newInstance: NewInstance): Any {
         throw ShutdownException()

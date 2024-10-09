@@ -3,7 +3,6 @@ package space.themelon.eia64.analysis
 import com.google.appinventor.components.runtime.ComponentContainer
 import space.themelon.eia64.Expression
 import space.themelon.eia64.expressions.*
-import space.themelon.eia64.expressions.ArrayLiteral
 import space.themelon.eia64.runtime.Executor
 import space.themelon.eia64.signatures.*
 import space.themelon.eia64.signatures.Matching.matches
@@ -356,8 +355,7 @@ class ParserX(
         val entity = parseStatement()
         expectType(Type.CLOSE_CURVE)
 
-        val elementSignature = when (val iterableSignature = entity.sig()) {
-            is ArrayExtension -> iterableSignature.elementSignature
+        val elementSignature = when (entity.sig()) {
             Sign.ARRAY -> Sign.ANY
             Sign.STRING -> Sign.CHAR
 
@@ -619,15 +617,6 @@ class ParserX(
                 Type.E_ANY -> Sign.ANY
                 Type.E_UNIT -> Sign.UNIT
                 Type.E_TYPE -> Sign.TYPE
-                Type.E_ARRAY -> {
-                    if (isNext(Type.LEFT_DIAMOND)) {
-                        skip()
-                        val elementSignature = readSignature(next())
-                        expectType(Type.RIGHT_DIAMOND)
-                        return ArrayExtension(elementSignature)
-                    }
-                    return Sign.ARRAY
-                }
                 Type.E_OBJECT -> ObjectExtension(Sign.OBJECT.type) // Generic form
                 Type.E_JAVA -> {
                     if (consumeNext(Type.OPEN_CURVE)) {
@@ -758,13 +747,6 @@ class ParserX(
             left = when (nextOp.type) {
                 // calling shadow func
                 Type.OPEN_CURVE -> unitCall(left)
-                Type.OPEN_SQUARE -> {
-                    // array access
-                    val where = next()
-                    val expr = parseStatement()
-                    expectType(Type.CLOSE_SQUARE)
-                    ArrayAccess(left.marking!!, left, expr)
-                }
                 Type.DOUBLE_COLON -> {
                     skip()
                     Cast(nextOp, left, readSignature(next()))
@@ -788,14 +770,12 @@ class ParserX(
         is StringLiteral, -> true
         is BoolLiteral -> true
         is CharLiteral -> true
-        is ArrayLiteral -> true
         else -> false
     }
 
     private fun checkMutability(where: Token, variableExpression: Expression) {
         // it's fine if it's array access, array elements are always mutable
-        if (variableExpression is ArrayAccess
-            || variableExpression is JavaFieldAccess
+        if (variableExpression is JavaFieldAccess
             || (variableExpression is JavaPropertyField)) return
 
         val variableName: String
@@ -1033,12 +1013,7 @@ class ParserX(
                     // Object Invocation
                     return ModuleInfo(where, signature.extensionClass, false)
                 }
-
-                else -> {
-                    // TODO: we'll have to work on a fix for this
-                    signature as ArrayExtension
-                    return ModuleInfo(where, "array", true)
-                }
+                else -> throw RuntimeException()
             }
         }
     }
@@ -1115,63 +1090,10 @@ class ParserX(
                 val arguments = callArguments()
                 return NativeCall(token, token.type, arguments)
             }
-            token.type == Type.ARRAY_OF -> {
-                if (isNext(Type.OPEN_CURVE)) {
-                    skip()
-                    return arrayStatement(token)
-                } else {
-                    // not for array allocation, array declaration with initial elements
-                    expectType(Type.LEFT_DIAMOND)
-                    val elementSignature = readSignature(next())
-                    expectType(Type.RIGHT_DIAMOND)
-                    expectType(Type.OPEN_CURVE)
-                    return arrayStatementSignature(token, elementSignature)
-                }
-            }
-            token.type == Type.MAKE_ARRAY -> {
-                expectType(Type.LEFT_DIAMOND)
-                val elementSignature = readSignature(next())
-                expectType(Type.RIGHT_DIAMOND)
-
-                expectType(Type.OPEN_CURVE)
-                val size = parseStatement()
-                expectType(Type.COMMA)
-                val defaultValue = parseStatement()
-                expectType(Type.CLOSE_CURVE)
-
-                return ArrayAllocation(token, elementSignature, size, defaultValue)
-            }
         }
         back()
         if (canParseNext()) return parseStatement()
         return token.error("Unexpected token")
-    }
-
-    private fun arrayStatement(token: Token): ArrayLiteral {
-        // auto array where signature is decided based on elements
-        val arrayElements = parseArrayElements()
-        return ArrayLiteral(token, arrayElements)
-    }
-
-    private fun arrayStatementSignature(token: Token, signature: Signature): ExplicitArrayLiteral {
-        // there's an explicit set signature for the array
-        val arrayElements = parseArrayElements()
-        return ExplicitArrayLiteral(token, signature, arrayElements)
-    }
-
-    private fun parseArrayElements(): MutableList<Expression> {
-        val arrayElements = mutableListOf<Expression>()
-        if (peek().type != Type.CLOSE_CURVE) {
-            while (true) {
-                arrayElements.add(parseStatement())
-                val next = next()
-                val nextType = next.type
-
-                if (nextType == Type.CLOSE_CURVE) break
-                else if (nextType != Type.COMMA) next.error<String>("Expected comma for array element separator")
-            }
-        }
-        return arrayElements
     }
 
     private fun parseValue(token: Token): Expression {

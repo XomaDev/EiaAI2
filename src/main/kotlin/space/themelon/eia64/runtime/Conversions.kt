@@ -19,8 +19,6 @@ object Conversions {
             is Boolean -> EBool(this)
             is Char -> EChar(this)
             null -> ENil()
-            // we need to recurse the elements here
-            is Array<*> -> EArray(Sign.ANY, this.map { element -> element.javaToEia() as Any }.toTypedArray())
             else -> throw RuntimeException("Cannot translate to eia: $this")
         }
     }

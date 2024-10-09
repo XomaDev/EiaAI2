@@ -46,13 +46,11 @@ object Sign {
             STRING -> Type.E_STRING
             CHAR -> Type.E_CHAR
             BOOL -> Type.E_BOOL
-            ARRAY -> Type.E_ARRAY
             UNIT -> Type.E_UNIT
             OBJECT -> Type.E_OBJECT
             TYPE -> Type.E_TYPE
             JAVA -> Type.E_JAVA
 
-            is ArrayExtension -> Type.E_ARRAY
             is ObjectExtension -> Type.E_OBJECT
             is JavaObjectSign -> Type.E_JAVA
             else -> throw RuntimeException("Unknown signature $this provided for translation into Type")

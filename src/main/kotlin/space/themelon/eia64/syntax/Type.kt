@@ -30,8 +30,7 @@ enum class Type {
     IS,
 
     E_NIL,
-    E_NUMBER, E_INT, E_FLOAT, E_BOOL, E_STRING, E_CHAR,
-    E_ARRAY, E_ANY, E_UNIT, E_OBJECT, E_TYPE, E_JAVA,
+    E_NUMBER, E_INT, E_FLOAT, E_BOOL, E_STRING, E_CHAR, E_ANY, E_UNIT, E_OBJECT, E_TYPE, E_JAVA,
 
     ALPHA,
     E_TRUE, E_FALSE, CLASS_VALUE,
@@ -47,7 +46,6 @@ enum class Type {
     EACH, TO, IN, BY, AS,
     FOR, UNTIL,
     FUN,
-    ARRAY_OF, MAKE_ARRAY,
     COPY, TIME, RAND, PRINT, PRINTLN, READ, READLN, LEN, SLEEP, FORMAT, EXIT, MEM_CLEAR,
     INCLUDE, IMPORT, STD, STATIC, NEW,
     THROW, TRY, CATCH,
@@ -129,7 +127,6 @@ enum class Type {
                 it["String"] = StaticToken(E_STRING, arrayOf(Flag.CLASS))
                 it["Char"] = StaticToken(E_CHAR, arrayOf(Flag.CLASS))
                 it["Any"] = StaticToken(E_ANY, arrayOf(Flag.CLASS))
-                it["Array"] = StaticToken(E_ARRAY, arrayOf(Flag.CLASS))
                 it["Unit"] = StaticToken(E_UNIT, arrayOf(Flag.CLASS))
                 it["Object"] = StaticToken(E_OBJECT, arrayOf(Flag.CLASS))
                 it["Type"] = StaticToken(E_TYPE, arrayOf(Flag.CLASS))
@@ -153,9 +150,6 @@ enum class Type {
 
                 it["typeOf"] = StaticToken(TYPE_OF, arrayOf(Flag.NATIVE_CALL))
                 it["copy"] = StaticToken(COPY, arrayOf(Flag.NATIVE_CALL))
-
-                it["arrayOf"] = StaticToken(ARRAY_OF)
-                it["makeArray"] = StaticToken(MAKE_ARRAY)
 
                 it["time"] = StaticToken(TIME, arrayOf(Flag.NATIVE_CALL))
                 it["rand"] = StaticToken(RAND, arrayOf(Flag.NATIVE_CALL))

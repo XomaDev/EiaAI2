@@ -1,10 +1,7 @@
 package space.themelon.eia64.runtime
 
 import com.google.appinventor.components.runtime.AndroidViewComponent
-import com.google.appinventor.components.runtime.Component
-import com.google.appinventor.components.runtime.ComponentContainer
 import com.google.appinventor.components.runtime.Form
-import org.json.JSONObject
 import space.themelon.eia64.AppInventorInterop
 import space.themelon.eia64.Expression
 import space.themelon.eia64.expressions.*
@@ -112,33 +109,10 @@ class Evaluator(
                     args,
                     dispatchInfo.second,
                 )
-                true
             }
         }
         struct.children.forEach { makeViewComponent(component, it) }
         return component
-    }
-
-    private fun prepareArrayOf(
-        arguments: List<Expression>,
-        elementSignature: Signature
-    ): EArray {
-        val evaluated = arrayOfNulls<Any>(arguments.size)
-        for ((index, aExpr) in arguments.withIndex())
-            evaluated[index] = unboxEval(aExpr)
-        evaluated as Array<Any>
-        return EArray(elementSignature, evaluated)
-    }
-
-    override fun array(literal: ArrayLiteral) = prepareArrayOf(literal.elements, literal.elementSignature())
-
-    override fun explicitArrayLiteral(arrayCreation: ExplicitArrayLiteral) =
-        prepareArrayOf(arrayCreation.elements, arrayCreation.elementSignature)
-
-    override fun arrayAllocation(arrayAllocation: ArrayAllocation): Any {
-        val size = intExpr(arrayAllocation.size)
-        val defaultValue = unboxEval(arrayAllocation.defaultValue)
-        return EArray(getSignature(defaultValue), Array(size.get()) { defaultValue })
     }
 
     private fun update(
@@ -216,8 +190,7 @@ class Evaluator(
         is EChar,
         is EBool,
         is ENil,
-        is EType,
-        is EArray -> left == right
+        is EType -> left == right
 
         else -> false
     }
@@ -252,7 +225,6 @@ class Evaluator(
             val value = unboxEval(expr.right)
             when (toUpdate) {
                 is Alpha -> update(toUpdate.index, toUpdate.value, value)
-                is ArrayAccess -> updateArrayElement(toUpdate, value)
                 is ForeignField -> updateForeignField(toUpdate, value)
                 is JavaFieldAccess -> updateJavaField(toUpdate, value)
                 is JavaPropertyField -> updateJavaProperty(toUpdate, value) // almost same as java field
@@ -270,24 +242,6 @@ class Evaluator(
         BITWISE_AND -> numericExpr(expr.left).and(numericExpr(expr.right))
         BITWISE_OR -> numericExpr(expr.left).or(numericExpr(expr.right))
         else -> throw RuntimeException("Unknown binary operator $type")
-    }
-
-    private fun updateArrayElement(access: ArrayAccess, value: Any) {
-        val array = unboxEval(access.expr)
-        val index = intExpr(access.index).get()
-
-        @Suppress("UNCHECKED_CAST")
-        when (getSignature(array)) {
-            // TODO:
-            //  we need to look here later, it could also be an array extension
-            Sign.ARRAY, is ArrayExtension -> (array as ArrayOperable<Any>).setAt(index, value)
-            Sign.STRING -> {
-                if (value !is EChar) throw RuntimeException("string[index] requires a Char")
-                (array as EString).setAt(index, value)
-            }
-
-            else -> throw RuntimeException("Unknown element access of {$array}")
-        }
     }
 
     override fun isStatement(isStatement: IsStatement) =
@@ -386,28 +340,6 @@ class Evaluator(
                 cast.where.error<String>("Class $gotClass cannot be cast into $promisedClass")
                 throw RuntimeException()
             }
-        } else if (promisedSignature is ArrayExtension) {
-            // Cast into explicit type declaration
-            if (gotSignature == Sign.ARRAY) return promisedSignature
-            if (gotSignature !is ArrayExtension) {
-                cast.where.error<String>("Cannot cast $result into array type $promisedSignature")
-                throw RuntimeException()
-            }
-            val castArrayType = promisedSignature.elementSignature
-            val currentArrayType = gotSignature.elementSignature
-            // TODO:
-            //  Here we would need to verify all the element types and reassign signature
-            //  If cast is being from Array<Int> we need to ensure all elements of Array are of Int
-            //  before renaming signature to Array<Int>
-            if (castArrayType != currentArrayType) {
-                cast.where.error<String>("Cannot cast array element type $currentArrayType into $castArrayType")
-                throw RuntimeException()
-            }
-        } else if (promisedSignature == Sign.ARRAY) {
-            if (!(gotSignature is ArrayExtension || gotSignature == Sign.ARRAY)) {
-                cast.where.error<String>("Cannot cast $result to $promisedSignature")
-                throw RuntimeException()
-            }
         } else if (promisedSignature is JavaObjectSign) {
             if (gotSignature !is JavaObjectSign) {
                 cast.where.error<String>("Cannot cast $result to $promisedSignature")
@@ -454,7 +386,6 @@ class Evaluator(
                 return EInt(
                     when (val data = unboxEval(call.arguments[0])) {
                         is EString -> data.length
-                        is EArray -> data.size
                         is ExpressionList -> data.size
                         is ENil -> 0
                         else -> throw RuntimeException("Unknown measurable data type $data")
@@ -617,7 +548,6 @@ class Evaluator(
                 args,
                 registration.body,
             )
-            true
         }
         return Nothing.INSTANCE
     }
@@ -848,11 +778,6 @@ class Evaluator(
                 getNext = { iterable.getAt(index++) }
             }
 
-            is EArray -> {
-                size = iterable.size
-                getNext = { iterable.getAt(index++) }
-            }
-
             else -> throw RuntimeException("Unknown non-iterable element $iterable")
         }
 
@@ -1017,14 +942,5 @@ class Evaluator(
     override fun function(function: FunctionExpr): Any {
         memory.declareFn(function.name, function)
         return EBool(true)
-    }
-
-    override fun arrayAccess(access: ArrayAccess): Any {
-        val entity = unboxEval(access.expr)
-        val index = intExpr(access.index).get()
-
-        if (entity !is ArrayOperable<*>)
-            throw RuntimeException("Unknown non-array operable element access of $entity")
-        return entity.getAt(index)!!
     }
 }

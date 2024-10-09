@@ -2,7 +2,6 @@ package space.themelon.eia64.runtime
 
 import space.themelon.eia64.Expression
 import space.themelon.eia64.primitives.*
-import space.themelon.eia64.signatures.ArrayExtension
 import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.signatures.ObjectExtension
 import space.themelon.eia64.signatures.Sign
@@ -48,7 +47,6 @@ open class Entity(
             is EString -> Sign.STRING
             is EBool -> Sign.BOOL
             is EChar -> Sign.CHAR
-            is EArray -> ArrayExtension(value.elementSignature)
             is EType -> Sign.TYPE
             is EJava -> Sign.JAVA
             is Expression -> Sign.UNIT

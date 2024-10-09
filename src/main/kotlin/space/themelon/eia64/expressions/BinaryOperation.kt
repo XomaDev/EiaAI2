@@ -72,16 +72,7 @@ data class BinaryOperation(
                 where.error<String>("Cannot apply logical operator on [Numeric/Char] expressions: ($leftLogName <= $rightLogName)")
             } else resultSign = Sign.BOOL
 
-            Type.ASSIGNMENT -> {
-                if (left is ArrayAccess) {
-                    // Array Assignment Safety Check
-                    // Can we really assign *this type* to that *array type*?
-                    if (!matches(expect = leftExprSign, got = rightExprSign)) {
-                        where.error<String>("Cannot assign type $rightExprSign to an array of type $leftExprSign")
-                    }
-                }
-                resultSign = rightExprSign
-            }
+            Type.ASSIGNMENT -> resultSign = rightExprSign
 
             Type.ADDITIVE_ASSIGNMENT -> when (rightExprSign) {
                 Sign.STRING, Sign.CHAR -> resultSign = Sign.STRING
