@@ -30,7 +30,6 @@ abstract class Expression(
         fun variable(variable: ExplicitVariable): R
         fun autoVariable(autoVariable: AutoVariable): R
         fun isStatement(isStatement: IsStatement): R
-        fun shado(shadow: Shadow): R
         fun unaryOperation(expr: UnaryOperation): R
         fun binaryOperation(expr: BinaryOperation): R
         fun expressions(list: ExpressionList): R
@@ -41,7 +40,6 @@ abstract class Expression(
         fun methodCall(call: MethodCall): R
         fun classPropertyAccess(propertyAccess: ForeignField): R
         fun classMethodCall(call: ClassMethodCall): R
-        fun unitInvoke(shadoInvoke: ShadoInvoke): R
         fun until(until: Until): R
         fun itr(itr: Itr): R
         fun whenExpr(whenExpr: When): R

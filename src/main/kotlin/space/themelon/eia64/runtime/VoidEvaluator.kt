@@ -83,10 +83,6 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
-    override fun shado(shadow: Shadow): Any {
-        throw ShutdownException()
-    }
-
     override fun unaryOperation(expr: UnaryOperation): Any {
         throw ShutdownException()
     }
@@ -124,10 +120,6 @@ class VoidEvaluator() : Expression.Visitor<Any> {
     }
 
     override fun classMethodCall(call: ClassMethodCall): Any {
-        throw ShutdownException()
-    }
-
-    override fun unitInvoke(shadoInvoke: ShadoInvoke): Any {
         throw ShutdownException()
     }
 

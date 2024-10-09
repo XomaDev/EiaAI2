@@ -812,45 +812,6 @@ class Evaluator(
         return result
     }
 
-    override fun unitInvoke(shadoInvoke: ShadoInvoke): Any {
-        var operand: Any = shadoInvoke.expr
-
-        // Fully Manual Scopped
-        if (operand !is Shadow)
-            operand = unboxEval(operand as Expression)
-
-        if (operand !is Shadow)
-            throw RuntimeException("Expected shadow element for call, but got $operand")
-
-        val expectedArgs = operand.names.size
-        val gotArgs = shadoInvoke.arguments.size
-
-        if (expectedArgs != gotArgs) {
-            reportWrongArguments("AnonShado", expectedArgs, gotArgs, "Shado")
-        }
-
-        val argIterator = operand.names.iterator()
-        val exprIterator = evaluateArgs(shadoInvoke.arguments).iterator()
-
-        memory.enterScope()
-        while (exprIterator.hasNext()) {
-            memory.declareVar(argIterator.next(), exprIterator.next())
-        }
-
-        val result = eval(operand.body)
-        memory.leaveScope()
-
-        if (result is Entity) {
-            when (result.interruption) {
-                InterruptionType.RETURN,
-                InterruptionType.USE -> return result
-
-                else -> {}
-            }
-        }
-        return result
-    }
-
     private fun reportWrongArguments(name: String, expectedArgs: Int, gotArgs: Int, type: String = "Fn") {
         throw RuntimeException("$type [$name()] expected $expectedArgs but got $gotArgs")
     }
@@ -1057,8 +1018,6 @@ class Evaluator(
         memory.declareFn(function.name, function)
         return EBool(true)
     }
-
-    override fun shado(shadow: Shadow) = shadow
 
     override fun arrayAccess(access: ArrayAccess): Any {
         val entity = unboxEval(access.expr)

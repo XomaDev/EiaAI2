@@ -60,7 +60,6 @@ class ParserX(
         return when (token.type) {
             Type.IF -> ifDeclaration(token)
             Type.FUN -> fnDeclaration()
-            Type.SHADO -> shadoDeclaration()
             Type.NEW -> newStatement(token)
             Type.INCLUDE -> includeStatement()
             Type.IMPORT -> importStatement()
@@ -92,8 +91,7 @@ class ParserX(
             Type.IMPORT,
             Type.NEW,
             Type.THROW,
-            Type.TRY,
-            Type.SHADO -> true
+            Type.TRY-> true
             //Type.WHEN -> true
             else -> false
         }
@@ -504,29 +502,7 @@ class ParserX(
         return fnExpr
     }
 
-    private fun shadoDeclaration(): Shadow {
-        val names = ArrayList<String>()
 
-        manager.enterScope()
-        expectType(Type.OPEN_CURVE)
-        while (!isEOF() && peek().type != Type.CLOSE_CURVE) {
-            val name = readAlpha()
-            expectType(Type.COLON)
-
-            val argSignature = readSignature(next())
-            manager.defineVariable(name, true, argSignature, false)
-            names.add(name)
-            if (!isNext(Type.COMMA)) break
-            skip()
-        }
-        expectType(Type.CLOSE_CURVE)
-        val body = if (isNext(Type.ASSIGNMENT)) {
-            skip()
-            parseStatement()
-        } else expressions() // Fully Manual Scopped
-        manager.leaveScope()
-        return Shadow(names, body)
-    }
 
     private fun ifDeclaration(where: Token): IfStatement {
         val logicalExpr = parseNextInBrace()
@@ -687,7 +663,6 @@ class ParserX(
                 parseStatement()
             }
 
-            Type.OPEN_CURVE -> shadoDeclaration()
             Type.OPEN_CURLY -> parseStatement()
             else -> nextToken.error("Unexpected variable expression")
         }
@@ -1123,8 +1098,6 @@ class ParserX(
                 return expr
             }
 
-            Type.OPEN_CURLY -> return Shadow(emptyList(), autoScopeBody().expr)
-
             else -> {}
         }
         val token = next()
@@ -1337,7 +1310,7 @@ class ParserX(
                 return MethodCall(unitExpr.marking!!, fnExpr, arguments)
             }
         }
-        return ShadoInvoke(unitExpr.marking!!, unitExpr, arguments)
+        throw RuntimeException("Not handled lol")
     }
 
     private fun callArguments(): List<Expression> {

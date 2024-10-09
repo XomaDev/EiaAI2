@@ -42,7 +42,7 @@ enum class Type {
     BOOL_CAST, INT_CAST, FLOAT_CAST, CHAR_CAST, STRING_CAST,
     TYPE_OF,
 
-    LET, VAR, SHADO, WHEN,
+    LET, VAR, WHEN,
     IF, ELSE,
     EACH, TO, IN, BY, AS,
     FOR, UNTIL,
@@ -195,7 +195,6 @@ enum class Type {
                 it["else"] = StaticToken(ELSE, arrayOf(Flag.NONE))
 
                 it["fn"] = StaticToken(FUN, arrayOf(Flag.NONE)) // manual scope
-                it["shado"] = StaticToken(SHADO) // manual scope
                 it["when"] = StaticToken(WHEN) // auto scope
 
                 it["return"] = StaticToken(RETURN, arrayOf(Flag.INTERRUPTION))
