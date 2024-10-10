@@ -1,6 +1,9 @@
 package space.themelon.eia64.runtime
 
+import com.google.appinventor.components.runtime.util.YailDictionary
+import com.google.appinventor.components.runtime.util.YailList
 import space.themelon.eia64.primitives.*
+import java.util.HashMap
 
 object Conversions {
     fun Any.eiaToJava(): Any? {
@@ -17,8 +20,20 @@ object Conversions {
             is String -> EString(this)
             is Boolean -> EBool(this)
             is Char -> EChar(this)
+            is YailList -> {
+                // convert to java.util.ArrayList<Any?>
+                val elements = ArrayList<Any?>()
+                forEach { elements += it }
+                EJava(elements, "FromYailList<>")
+            }
+            is YailDictionary -> {
+                // convert to java.util.HashMap<Any?, Any?>
+                val elements = HashMap<Any?, Any?>()
+                forEach { t, u -> elements += t to u }
+                EJava(elements, "FromYailDict<>")
+            }
             null -> ENil()
-            else -> throw RuntimeException("Cannot translate to eia: $this")
+            else -> EJava(this, "${this::class.java.name}<>")
         }
     }
 }

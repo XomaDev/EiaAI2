@@ -462,6 +462,7 @@ class Evaluator(
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun yailConversion(yailConversion: YailConversion): Any {
         val value = unboxEval(yailConversion.expression)
         // expression signatures are already ensured at parse-time
