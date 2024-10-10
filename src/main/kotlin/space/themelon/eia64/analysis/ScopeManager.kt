@@ -86,13 +86,10 @@ class ScopeManager {
     fun readFnOutline(): FunctionReference = currentScope.sequentialFunctions.pop()
 
     // If it is marked Visible, then it can be indexed by external Parsers/Resolvers
-    fun defineVariable(name: String,
-                       mutable: Boolean,
-                       signature: Signature,
-                       public: Boolean) {
+    fun defineVariable(name: String, signature: Signature, public: Boolean) {
         if (currentScope.resolveVr(name) != null)
             throw RuntimeException("Variable $name is already defined")
-        currentScope.defineVr(name, mutable, signature, public)
+        currentScope.defineVr(name, signature, public)
     }
 
     fun hasFunctionNamed(name: String) = currentScope.resolveFnName(name)

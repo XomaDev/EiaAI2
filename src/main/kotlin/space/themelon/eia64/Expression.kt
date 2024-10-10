@@ -19,12 +19,9 @@ abstract class Expression(
         fun charLiteral(literal: CharLiteral): R
         fun typeLiteral(literal: TypeLiteral): R
         fun alpha(alpha: Alpha): R
-        fun include(include: Include): R
-        fun new(new: NewObj): R
         fun throwExpr(throwExpr: ThrowExpr): R
         fun tryCatch(tryCatch: TryCatch): R
-        fun variable(variable: ExplicitVariable): R
-        fun autoVariable(autoVariable: AutoVariable): R
+        fun variable(variable: Variable): R
         fun isStatement(isStatement: IsStatement): R
         fun unaryOperation(expr: UnaryOperation): R
         fun binaryOperation(expr: BinaryOperation): R

@@ -22,7 +22,7 @@ data class NativeCall(
     companion object {
         private val OLD_FUNCTION_SIGNATURES = HashMap<Type, FunctionInfo>().apply {
             put(Type.PRINT, FunctionInfo(Sign.NONE, -1))
-            put(Type.PRINTLN, FunctionInfo(Sign.NONE, -1))
+            put(Type.PRINTF, FunctionInfo(Sign.NONE, -1))
             put(Type.LEN, FunctionInfo(Sign.INT, 1, listOf("measurable" to Sign.ANY)))
             put(Type.SLEEP, FunctionInfo(Sign.NONE, 1, listOf("millis" to Sign.INT)))
             put(Type.RAND, FunctionInfo(Sign.INT, 2, listOf("from" to Sign.INT, "to" to Sign.INT)))
@@ -35,13 +35,9 @@ data class NativeCall(
             put(Type.STRING_CAST, FunctionInfo(Sign.STRING, 1, listOf("stringCastable" to Sign.ANY)))
 
             put(Type.TIME, FunctionInfo(Sign.INT, 0))
-            put(Type.READ, FunctionInfo(Sign.STRING, 0))
-            put(Type.READLN, FunctionInfo(Sign.STRING, 0))
             put(Type.FORMAT, FunctionInfo(Sign.STRING, -1))
             put(Type.TYPE_OF, FunctionInfo(Sign.TYPE, 1, listOf("any" to Sign.ANY)))
 
-            put(Type.INCLUDE, FunctionInfo(Sign.NONE, 1, listOf("name" to Sign.STRING)))
-            put(Type.MEM_CLEAR, FunctionInfo(Sign.NONE, 0))
             put(Type.COPY, FunctionInfo(null, 1, listOf("any" to Sign.ANY)))
         }
     }

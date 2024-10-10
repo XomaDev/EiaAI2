@@ -9,5 +9,7 @@ object TestingEia {
         Executor.STD_LIB = System.getProperty("user.dir") + "/stdlib/"
         val executor = Executor()
         executor.defineJavaObject("Cat1", Cat("Meow"))
+        val parsed = executor.parse(String(javaClass.classLoader.getResourceAsStream("hi.txt").readAllBytes()))
+        executor.evaluate(parsed!!)
     }
 }

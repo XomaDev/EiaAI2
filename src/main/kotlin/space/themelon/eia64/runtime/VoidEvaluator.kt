@@ -43,14 +43,6 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
-    override fun include(include: Include): Any {
-        throw ShutdownException()
-    }
-
-    override fun new(new: NewObj): Any {
-        throw ShutdownException()
-    }
-
     override fun throwExpr(throwExpr: ThrowExpr): Any {
         throw ShutdownException()
     }
@@ -59,11 +51,7 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
-    override fun variable(variable: ExplicitVariable): Any {
-        throw ShutdownException()
-    }
-
-    override fun autoVariable(autoVariable: AutoVariable): Any {
+    override fun variable(variable: Variable): Any {
         throw ShutdownException()
     }
 

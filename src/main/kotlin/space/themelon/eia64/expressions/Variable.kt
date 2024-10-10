@@ -5,12 +5,11 @@ import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.signatures.Signature
 import space.themelon.eia64.syntax.Token
 
-data class ExplicitVariable(
+data class Variable(
     val where: Token,
-    val mutable: Boolean,
     val name: String,
     val expr: Expression,
-    val explicitSignature: Signature
+    val expectSignature: Signature? = null
 ) : Expression(where) {
 
     init {
@@ -21,10 +20,11 @@ data class ExplicitVariable(
 
     override fun sig(): Signature {
         val exprSig = expr.sig()
-        if (!matches(expect = explicitSignature, got = exprSig)) {
-            where.error<String>("Variable '$name' expected signature $explicitSignature but got $exprSig")
+        if (expectSignature == null) return exprSig
+        if (!matches(expect = expectSignature, got = exprSig)) {
+            where.error<String>("Variable '$name' expected signature $expectSignature but got $exprSig")
             throw RuntimeException()
         }
-        return explicitSignature
+        return expectSignature
     }
 }

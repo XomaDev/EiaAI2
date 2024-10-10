@@ -36,18 +36,16 @@ enum class Type {
     E_TRUE, E_FALSE, CLASS_VALUE,
     NIL,
 
-    VISIBLE, INVISIBLE,
-
     BOOL_CAST, INT_CAST, FLOAT_CAST, CHAR_CAST, STRING_CAST,
     TYPE_OF,
 
-    LET, VAR, WHEN,
+    LET, WHEN,
     IF, ELSE,
     EACH, TO, IN, BY, AS,
     FOR, UNTIL,
     FUN,
-    COPY, TIME, RAND, PRINT, PRINTLN, READ, READLN, LEN, SLEEP, FORMAT, EXIT, MEM_CLEAR,
-    INCLUDE, IMPORT, STD, STATIC, NEW,
+    COPY, TIME, RAND, PRINT, PRINTF, LEN, SLEEP, FORMAT, EXIT,
+    IMPORT, NEW,
     THROW, TRY, CATCH,
 
     RETURN, BREAK, CONTINUE,
@@ -137,9 +135,6 @@ enum class Type {
                 it["false"] = StaticToken(E_FALSE, arrayOf(Flag.VALUE, Flag.E_BOOL))
                 it["type"] = StaticToken(CLASS_VALUE, arrayOf(Flag.VALUE))
 
-                it["visible"] = StaticToken(VISIBLE, arrayOf(Flag.MODIFIER))
-                it["private"] = StaticToken(INVISIBLE, arrayOf(Flag.MODIFIER))
-
                 it["bool"] = StaticToken(BOOL_CAST, arrayOf(Flag.NATIVE_CALL))
                 it["int"] = StaticToken(INT_CAST, arrayOf(Flag.NATIVE_CALL))
                 it["float"] = StaticToken(FLOAT_CAST, arrayOf(Flag.NATIVE_CALL))
@@ -154,18 +149,10 @@ enum class Type {
                 it["time"] = StaticToken(TIME, arrayOf(Flag.NATIVE_CALL))
                 it["rand"] = StaticToken(RAND, arrayOf(Flag.NATIVE_CALL))
                 it["print"] = StaticToken(PRINT, arrayOf(Flag.NATIVE_CALL))
-                it["println"] = StaticToken(PRINTLN, arrayOf(Flag.NATIVE_CALL))
-                it["read"] = StaticToken(READ, arrayOf(Flag.NATIVE_CALL))
-                it["readln"] = StaticToken(READLN, arrayOf(Flag.NATIVE_CALL))
+                it["printf"] = StaticToken(PRINTF, arrayOf(Flag.NATIVE_CALL))
                 it["sleep"] = StaticToken(SLEEP, arrayOf(Flag.NATIVE_CALL))
                 it["len"] = StaticToken(LEN, arrayOf(Flag.NATIVE_CALL))
-                it["format"] = StaticToken(FORMAT, arrayOf(Flag.NATIVE_CALL))
                 it["exit"] = StaticToken(EXIT, arrayOf(Flag.NATIVE_CALL))
-                it["memclear"] = StaticToken(MEM_CLEAR, arrayOf(Flag.NATIVE_CALL))
-
-                it["std"] = StaticToken(STD)
-                it["static"] = StaticToken(STATIC)
-                it["include"] = StaticToken(INCLUDE)
 
                 it["import"] = StaticToken(IMPORT)
 
@@ -183,13 +170,12 @@ enum class Type {
                 it["for"] = StaticToken(FOR, arrayOf(Flag.LOOP)) // auto scope
 
                 it["let"] = StaticToken(LET, arrayOf(Flag.V_KEYWORD))
-                it["var"] = StaticToken(VAR, arrayOf(Flag.V_KEYWORD))
 
                 it["if"] = StaticToken(IF, arrayOf(Flag.NONE)) // auto scope
                 it["else"] = StaticToken(ELSE, arrayOf(Flag.NONE))
 
-                it["fn"] = StaticToken(FUN, arrayOf(Flag.NONE)) // manual scope
-                it["when"] = StaticToken(WHEN) // auto scope
+                it["fun"] = StaticToken(FUN, arrayOf(Flag.NONE)) // manual scope
+                it["when"] = StaticToken(WHEN)
 
                 it["return"] = StaticToken(RETURN, arrayOf(Flag.INTERRUPTION))
                 it["break"] = StaticToken(BREAK, arrayOf(Flag.INTERRUPTION))

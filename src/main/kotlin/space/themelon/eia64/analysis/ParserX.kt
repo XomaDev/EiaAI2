@@ -9,9 +9,8 @@ import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.syntax.Flag
 import space.themelon.eia64.syntax.Token
 import space.themelon.eia64.syntax.Type
-import java.io.File
+import space.themelon.eia64.syntax.Type.*
 import java.lang.reflect.Method
-import java.util.StringJoiner
 
 class ParserX(
     private val executor: Executor,
@@ -52,19 +51,16 @@ class ParserX(
                 Flag.LOOP -> return loop(token)
                 Flag.V_KEYWORD -> return variableDeclaration(false, token)
                 Flag.INTERRUPTION -> return interruption(token)
-                Flag.MODIFIER -> return handleModifier(token)
                 else -> {}
             }
         }
         return when (token.type) {
-            Type.IF -> ifDeclaration(token)
-            Type.FUN -> fnDeclaration()
-            Type.NEW -> newStatement(token)
-            Type.INCLUDE -> includeStatement()
-            Type.IMPORT -> importStatement()
-            //Type.WHEN -> whenStatement(token)
-            Type.THROW -> throwStatement(token)
-            Type.TRY -> tryCatchStatement(token)
+            IF -> ifDeclaration(token)
+            FUN -> fnDeclaration()
+            NEW -> newStatement(token)
+            IMPORT -> importStatement()
+            THROW -> throwStatement(token)
+            TRY -> tryCatchStatement(token)
             else -> {
                 back()
                 parseExpr(0)
@@ -78,20 +74,17 @@ class ParserX(
             token.flags[0].let {
                 if (it == Flag.LOOP
                     || it == Flag.V_KEYWORD
-                    || it == Flag.INTERRUPTION
-                    || it == Flag.MODIFIER)
+                    || it == Flag.INTERRUPTION)
                     return true
             }
         return when (token.type) {
-            Type.IF,
-            Type.FUN,
-            Type.STD,
-            Type.INCLUDE,
-            Type.IMPORT,
-            Type.NEW,
-            Type.THROW,
-            Type.TRY-> true
-            //Type.WHEN -> true
+            IF,
+            FUN,
+            IMPORT,
+            NEW,
+            THROW,
+            TRY-> true
+            //WHEN -> true
             else -> false
         }
     }
@@ -112,18 +105,12 @@ class ParserX(
         while (!isEOF()) {
             val token = next()
             when (val type = token.type) {
-                Type.OPEN_CURLY -> curlyBracesCount++
-                Type.CLOSE_CURLY -> {
+                OPEN_CURLY -> curlyBracesCount++
+                CLOSE_CURLY -> {
                     if (curlyBracesCount == 0) break
                     else curlyBracesCount--
                 }
-                Type.FUN -> if (curlyBracesCount == 0) handleFn(false)
-                Type.VISIBLE, Type.INVISIBLE -> {
-                    if (curlyBracesCount == 0 && isNext(Type.FUN)) {
-                        skip()
-                        handleFn(type == Type.VISIBLE)
-                    }
-                }
+                FUN -> if (curlyBracesCount == 0) handleFn(false)
                 else -> { }
             }
         }
@@ -131,25 +118,15 @@ class ParserX(
         index = originalIndex
     }
 
-    private fun handleModifier(modifier: Token): Expression {
-        val visible = modifier.type == Type.VISIBLE
-        val next = next()
-        return when (next.type) {
-            Type.FUN -> fnDeclaration()
-            Type.VAR, Type.LET -> variableDeclaration(visible, next)
-            else -> next.error("Unexpected token")
-        }
-    }
-
     private fun throwStatement(token: Token) = ThrowExpr(token, parseStatement())
 
     private fun tryCatchStatement(token: Token): TryCatch {
         // try { ... } catch message { ... }
         val tryBlock = autoBodyExpr()
-        expectType(Type.CATCH)
+        expectType(CATCH)
         val catchIdentifier = readAlpha()
         manager.enterScope()
-        manager.defineVariable(catchIdentifier, false, Sign.STRING, false)
+        manager.defineVariable(catchIdentifier, Sign.STRING, false)
         val catchBody = unscoppedBodyExpr()
         manager.leaveScope()
 
@@ -159,7 +136,7 @@ class ParserX(
     private fun importStatement(): Expression {
         val pkgNameParts = ArrayList<String>()
         pkgNameParts += readAlpha()
-        while (consumeNext(Type.DOT)) {
+        while (consumeNext(DOT)) {
             pkgNameParts += readAlpha()
         }
         val clazz = Class.forName(pkgNameParts.joinToString("."))
@@ -169,88 +146,14 @@ class ParserX(
         return DiscardExpression()
     }
 
-    private fun includeStatement(): Expression {
-        expectType(Type.OPEN_CURVE)
-        val classNames = mutableListOf<String>()
-        while (true) {
-            val next = next()
-            when (next.type) {
-                // means importing only one static instance of the class
-                Type.STATIC -> classNames.add(includeStatic())
-                Type.STD -> {
-                    expectType(Type.COLON)
-
-                    val filePath = if (isNext(Type.ALPHA)) readAlpha()
-                    else expectType(Type.E_STRING).data as String
-
-                    val file = File("${Executor.STD_LIB}/$filePath.eia")
-                    val moduleName = getModuleName(file)
-                    classNames.add(moduleName)
-
-                    manager.classes.add(moduleName)
-                    executor.addModule(file.absolutePath, moduleName)
-                }
-                Type.E_STRING -> {
-                    // include("simulationenv/HelloProgram")
-                    var path = next.data as String + ".eia"
-                    if (path.startsWith("stdlib")) {
-                        path = path.replaceFirst("stdlib", Executor.STD_LIB)
-                    }
-                    val sourceFile = getModulePath(path)
-
-                    verifyFilePath(sourceFile, next)
-                    val moduleName = getModuleName(sourceFile)
-                    manager.classes.add(moduleName)
-                    executor.addModule(sourceFile.absolutePath, moduleName)
-                }
-                else -> next.error("Unexpected token")
-            }
-            if (peek().type == Type.CLOSE_CURVE) break
-            expectType(Type.COMMA)
-        }
-        expectType(Type.CLOSE_CURVE)
-        return Include(classNames)
-    }
-
-    private fun includeStatic(): String {
-        expectType(Type.COLON)
-        val path = next()
-        val sourceFile = if (path.type == Type.STD) {
-            expectType(Type.COLON)
-            File("${Executor.STD_LIB}/${readAlpha()}.eia")
-        } else {
-            if (path.type != Type.E_STRING)
-                path.error<String>("Expected a string type for static:")
-            File("${getModulePath(path.data as String)}.eia")
-        }
-        verifyFilePath(sourceFile, path)
-        val moduleName = getModuleName(sourceFile)
-        manager.classes.add(moduleName)
-        manager.staticClasses.add(moduleName)
-        executor.addModule(sourceFile.absolutePath, moduleName)
-        return moduleName
-    }
-
-    private fun getModuleName(sourceFile: File) = sourceFile.name.substring(0, sourceFile.name.length - ".eia".length)
-
-    private fun verifyFilePath(sourceFile: File, next: Token) {
-        if (!sourceFile.isFile || !sourceFile.exists()) {
-            next.error<String>("Cannot find source file '$sourceFile', make sure it is a full valid path")
-        }
-    }
-
-    private fun getModulePath(path: String) =
-        if (path.startsWith('/')) File(path)
-        else File("${Executor.EXECUTION_DIRECTORY}/$path")
-
     // this function was repurposed for making java instances
     private fun newStatement(token: Token): Expression {
         val name = readAlpha()
         val clazz = executor.knownJavaClasses[name]
             ?: token.error("Cannot find symbol '$name'")
-        expectType(Type.OPEN_CURVE)
-        val args = parseArguments()
-        expectType(Type.CLOSE_CURVE)
+        expectType(OPEN_CURVE)
+        val args = parseArgs()
+        expectType(CLOSE_CURVE)
 
         // now we have to find a suitable constructor,
         // it's not very sophisticated though, but it does the work (for now?)
@@ -269,69 +172,44 @@ class ParserX(
         // we do it this way, just calling parseNext() would work, but it increases code flow
         // which may make it harder to debug the Parser.
 
-        expectType(Type.OPEN_CURVE)
+        expectType(OPEN_CURVE)
         val expr = parseStatement()
-        expectType(Type.CLOSE_CURVE)
+        expectType(CLOSE_CURVE)
         return expr
-    }
-
-    private fun whenStatement(where: Token): Expression {
-        val expr = parseNextInBrace()
-
-        // Scope: Automatic
-        fun readStatement(): Scope {
-            expectType(Type.RIGHT_ARROW)
-            return autoScopeBody()
-        }
-
-        expectType(Type.OPEN_CURLY)
-        val matches = ArrayList<Pair<Expression, Scope>>()
-        while (true) {
-            val p = peek()
-            if (p.type == Type.ELSE) break
-            if (p.type == Type.CLOSE_CURLY) {
-                where.error<String>("Expected else branch for the when statement")
-            }
-            matches.add(parseStatement() to readStatement())
-        }
-        expectType(Type.ELSE)
-        val elseBranch = readStatement()
-        expectType(Type.CLOSE_CURLY)
-
-        if (matches.isEmpty()) {
-            where.error<String>("When statement cannot be empty")
-        }
-        return When(where, expr, matches, elseBranch)
     }
 
     private fun loop(where: Token): Expression {
         when (where.type) {
-            Type.UNTIL -> {
+            UNTIL -> {
                 val expr = parseNextInBrace()
                 // Scope: Automatic
                 val body = manager.iterativeScope { autoScopeBody() }
                 return Until(where, expr, body)
             }
 
-            Type.FOR -> return forLoop(where)
+            FOR -> {
+                // we cannot expose initializers outside the for loop
+                expectType(OPEN_CURVE)
+                return if (isNext(ALPHA)) forEach(where) else forVariableLoop(where)
+            }
 
-            Type.EACH -> {
-                expectType(Type.OPEN_CURVE)
+            EACH -> {
+                expectType(OPEN_CURVE)
                 val iName = readAlpha()
-                expectType(Type.COLON)
+                expectType(COLON)
 
                 val from = parseStatement()
-                expectType(Type.TO)
+                expectType(TO)
                 val to = parseStatement()
 
                 var by: Expression? = null
-                if (isNext(Type.BY)) {
+                if (isNext(BY)) {
                     skip()
                     by = parseStatement()
                 }
-                expectType(Type.CLOSE_CURVE)
+                expectType(CLOSE_CURVE)
                 manager.enterScope()
-                manager.defineVariable(iName, false, Sign.INT, false)
+                manager.defineVariable(iName, Sign.INT, false)
                 // Manual Scopped!
                 val body = manager.iterativeScope { unscoppedBodyExpr() }
                 manager.leaveScope()
@@ -342,18 +220,11 @@ class ParserX(
         }
     }
 
-    private fun forLoop(where: Token): Expression {
-        // we cannot expose initializers outside the for loop
-        expectType(Type.OPEN_CURVE)
-        val expression = if (isNext(Type.ALPHA)) forEach(where) else forVariableLoop(where)
-        return expression
-    }
-
     private fun forEach(where: Token): ForEach {
         val iName = readAlpha()
-        expectType(Type.IN)
+        expectType(IN)
         val entity = parseStatement()
-        expectType(Type.CLOSE_CURVE)
+        expectType(CLOSE_CURVE)
 
         val elementSignature = when (entity.sig()) {
             Sign.ARRAY -> Sign.ANY
@@ -366,7 +237,7 @@ class ParserX(
         }
 
         manager.enterScope()
-        manager.defineVariable(iName, false, elementSignature, false)
+        manager.defineVariable(iName, elementSignature, false)
         // Manual Scopped!
         val body = manager.iterativeScope { unscoppedBodyExpr() }
         manager.leaveScope()
@@ -377,12 +248,12 @@ class ParserX(
         where: Token,
     ): ForLoop {
         manager.enterScope()
-        val initializer = if (isNext(Type.SEMI_COLON)) null else parseStatement()
-        expectType(Type.SEMI_COLON)
-        val conditional = if (isNext(Type.SEMI_COLON)) null else parseStatement()
-        expectType(Type.SEMI_COLON)
-        val operational = if (isNext(Type.CLOSE_CURVE)) null else parseStatement()
-        expectType(Type.CLOSE_CURVE)
+        val initializer = if (isNext(SEMI_COLON)) null else parseStatement()
+        expectType(SEMI_COLON)
+        val conditional = if (isNext(SEMI_COLON)) null else parseStatement()
+        expectType(SEMI_COLON)
+        val operational = if (isNext(CLOSE_CURVE)) null else parseStatement()
+        expectType(CLOSE_CURVE)
         // double layer scope wrapping
         // Scope: Automatic
         val body = manager.iterativeScope { autoBodyExpr() }
@@ -398,8 +269,8 @@ class ParserX(
 
     private fun interruption(token: Token): Interruption {
         // checks if `continue and `break` statement are allowed
-        if ((token.type == Type.CONTINUE || token.type == Type.BREAK) && !manager.isIterativeScope) {
-            val type = if (token.type == Type.CONTINUE) "Continue" else "Break"
+        if ((token.type == CONTINUE || token.type == BREAK) && !manager.isIterativeScope) {
+            val type = if (token.type == CONTINUE) "Continue" else "Break"
             token.error<String>("$type statement is not allowed here") // End of Execution
             throw RuntimeException()
         }
@@ -407,7 +278,7 @@ class ParserX(
             token,
             token.type,
             when (token.type) {
-                Type.RETURN -> {
+                RETURN -> {
                     val expectedSignature = manager.getPromisedSignature
                     if (expectedSignature == Sign.NONE) {
                         null
@@ -421,7 +292,7 @@ class ParserX(
                         expr
                     }
                 }
-                Type.USE -> parseStatement()
+                USE -> parseStatement()
                 else -> null
             }
         )
@@ -434,7 +305,7 @@ class ParserX(
         val requiredArgs = readRequiredArgs()
 
         val isVoid: Boolean
-        val returnSignature = if (isNext(Type.COLON)) {
+        val returnSignature = if (isNext(COLON)) {
             skip()
             isVoid = false
             readSignature(next())
@@ -457,18 +328,18 @@ class ParserX(
     }
 
     private fun readRequiredArgs(): List<Pair<String, Signature>> {
-        expectType(Type.OPEN_CURVE)
+        expectType(OPEN_CURVE)
         val requiredArgs = mutableListOf<Pair<String, Signature>>()
-        while (!isEOF() && peek().type != Type.CLOSE_CURVE) {
+        while (!isEOF() && peek().type != CLOSE_CURVE) {
             val parameterName = readAlpha()
-            expectType(Type.COLON)
+            expectType(COLON)
             val signature = readSignature(next())
 
             requiredArgs += parameterName to signature
-            if (!isNext(Type.COMMA)) break
+            if (!isNext(COMMA)) break
             skip()
         }
-        expectType(Type.CLOSE_CURVE)
+        expectType(CLOSE_CURVE)
         return requiredArgs
     }
 
@@ -476,9 +347,9 @@ class ParserX(
         val reference = manager.readFnOutline()
         index = reference.tokenIndex
         manager.enterScope()
-        reference.parameters.forEach { manager.defineVariable(it.first, true, it.second, false) }
+        reference.parameters.forEach { manager.defineVariable(it.first, it.second, false) }
 
-        val body: Expression = if (isNext(Type.ASSIGNMENT)) {
+        val body: Expression = if (isNext(ASSIGNMENT)) {
             skip()
             parseStatement()
         } else {
@@ -512,12 +383,12 @@ class ParserX(
         // Case 1 => Terminative (meaning end-of execution if the body is executed)
         //   then => then we treat the rest of the body as an else function
 
-        if (isEOF() || peek().type != Type.ELSE)
+        if (isEOF() || peek().type != ELSE)
             return IfStatement(where, logicalExpr, ifBody, NoneExpression.INSTANCE)
         skip()
 
         val elseBranch = when (peek().type) {
-            Type.IF -> ifDeclaration(next())
+            IF -> ifDeclaration(next())
             else -> autoBodyExpr()
         }
         return IfStatement(where, logicalExpr, ifBody, elseBranch)
@@ -526,7 +397,7 @@ class ParserX(
     private fun autoBodyExpr(): Scope {
         // used everywhere where there is no manual scope management is required,
         //  e.g., IfExpr, Until, For
-        if (peek().type == Type.OPEN_CURLY) return autoScopeBody()
+        if (peek().type == OPEN_CURLY) return autoScopeBody()
         manager.enterScope()
         return Scope(parseStatement(), manager.leaveScope())
     }
@@ -537,26 +408,26 @@ class ParserX(
     }
 
     private fun unscoppedBodyExpr(): Expression {
-        if (peek().type == Type.OPEN_CURLY) return expressions()
+        if (peek().type == OPEN_CURLY) return expressions()
         return parseStatement()
     }
 
     private fun expressions(): Expression {
-        expectType(Type.OPEN_CURLY)
+        expectType(OPEN_CURLY)
         parseScopeOutline()
         val expressions = ArrayList<Expression>()
-        if (peek().type == Type.CLOSE_CURLY)
+        if (peek().type == CLOSE_CURLY)
             return ExpressionList(expressions)
-        while (!isEOF() && peek().type != Type.CLOSE_CURLY)
+        while (!isEOF() && peek().type != CLOSE_CURLY)
             expressions.add(parseStatement())
-        expectType(Type.CLOSE_CURLY)
+        expectType(CLOSE_CURLY)
         // such optimisations may alter expressions behaviour
         // if (expressions.size == 1) return expressions[0]
         return ExpressionList(expressions)
     }
 
     private fun variableDeclaration(public: Boolean, where: Token): Expression {
-        //if (!isNext(Type.EXCLAMATION)) {
+        //if (!isNext(EXCLAMATION)) {
             // for now, later when ';' will be swapped with //, we won't need it
             //return readVariableDeclaration(where, public)
         //}
@@ -568,7 +439,7 @@ class ParserX(
             // read minimum one declaration
             expressions += readVariableDeclaration(where, public)
             //println("Iteration: " + expressions.last())
-        } while (isNext(Type.COMMA).also { if (it) next() })
+        } while (isNext(COMMA).also { if (it) next() })
 
         if (expressions.size == 1) return expressions.first()
         return ExpressionBind(expressions)
@@ -583,23 +454,21 @@ class ParserX(
         val expr: Expression
         val signature: Signature
 
-        val mutable = where.type == Type.VAR
-        if (!isNext(Type.COLON)) {
+        if (!isNext(COLON)) {
             val assignmentExpr = readVariableExpr()
             signature = assignmentExpr.sig()
-            expr = AutoVariable(where, name, assignmentExpr)
+            expr = Variable(where, name, assignmentExpr)
         } else {
             skip()
             signature = readSignature(next())
-            expr = ExplicitVariable(
+            expr = Variable(
                 where,
-                where.type == Type.VAR,
                 name,
                 readVariableExpr(),
                 signature
             )
         }
-        manager.defineVariable(name, mutable, signature, public)
+        manager.defineVariable(name, signature, public)
         return expr
     }
 
@@ -607,21 +476,21 @@ class ParserX(
         if (token.hasFlag(Flag.CLASS)) {
             // then wrap it around Simple Signature
             return when (val classType = token.type) {
-                Type.E_NUMBER -> Sign.NUM
-                Type.E_NIL -> Sign.NIL
-                Type.E_INT -> Sign.INT
-                Type.E_FLOAT -> Sign.FLOAT
-                Type.E_STRING -> Sign.STRING
-                Type.E_CHAR -> Sign.CHAR
-                Type.E_BOOL -> Sign.BOOL
-                Type.E_ANY -> Sign.ANY
-                Type.E_UNIT -> Sign.UNIT
-                Type.E_TYPE -> Sign.TYPE
-                Type.E_OBJECT -> ObjectExtension(Sign.OBJECT.type) // Generic form
-                Type.E_JAVA -> {
-                    if (consumeNext(Type.OPEN_CURVE)) {
+                E_NUMBER -> Sign.NUM
+                E_NIL -> Sign.NIL
+                E_INT -> Sign.INT
+                E_FLOAT -> Sign.FLOAT
+                E_STRING -> Sign.STRING
+                E_CHAR -> Sign.CHAR
+                E_BOOL -> Sign.BOOL
+                E_ANY -> Sign.ANY
+                E_UNIT -> Sign.UNIT
+                E_TYPE -> Sign.TYPE
+                E_OBJECT -> ObjectExtension(Sign.OBJECT.type) // Generic form
+                E_JAVA -> {
+                    if (consumeNext(OPEN_CURVE)) {
                         val name = readAlpha()
-                        expectType(Type.CLOSE_CURVE)
+                        expectType(CLOSE_CURVE)
                         return JavaObjectSign(Class.forName(name))
                     } else {
                         return Sign.JAVA
@@ -631,7 +500,7 @@ class ParserX(
             }
         }
 
-        if (token.type != Type.ALPHA) {
+        if (token.type != ALPHA) {
             token.error<String>("Expected a class type")
             // end of execution
         }
@@ -647,12 +516,12 @@ class ParserX(
     private fun readVariableExpr(): Expression {
         val nextToken = peek()
         return when (nextToken.type) {
-            Type.ASSIGNMENT -> {
+            ASSIGNMENT -> {
                 skip()
                 parseStatement()
             }
 
-            Type.OPEN_CURLY -> parseStatement()
+            OPEN_CURLY -> parseStatement()
             else -> nextToken.error("Unexpected variable expression")
         }
     }
@@ -674,12 +543,10 @@ class ParserX(
             if (precedence < minPrecedence) return left
 
             skip() // operator token
-            if (opToken.type == Type.IS) {
+            if (opToken.type == IS) {
                 val signature = readSignature(next())
                 left = IsStatement(left, signature)
             } else {
-                // need to verify that variable is mutable
-                if (opToken.type == Type.ASSIGNMENT) checkMutability(opToken, left)
                 val right =
                     if (opToken.hasFlag(Flag.PRESERVE_ORDER)) parseElement()
                     else parseExpr(precedence)
@@ -704,11 +571,11 @@ class ParserX(
             // We gotta translate `x += 2` into `x = x + 2`
             // wen token has `SPREAD` flag
             val newType = when (type) {
-                Type.ADDITIVE_ASSIGNMENT -> Type.PLUS
-                Type.DEDUCTIVE_ASSIGNMENT -> Type.NEGATE
-                Type.MULTIPLICATIVE_ASSIGNMENT -> Type.MULTIPLICATIVE_ASSIGNMENT
-                Type.DIVIDIVE_ASSIGNMENT -> Type.SLASH
-                Type.REMAINDER_ASSIGNMENT -> Type.REMAINDER
+                ADDITIVE_ASSIGNMENT -> PLUS
+                DEDUCTIVE_ASSIGNMENT -> NEGATE
+                MULTIPLICATIVE_ASSIGNMENT -> MULTIPLICATIVE_ASSIGNMENT
+                DIVIDIVE_ASSIGNMENT -> SLASH
+                REMAINDER_ASSIGNMENT -> REMAINDER
                 else -> throw RuntimeException("Unexpected operator $opToken")
             }
             val newOpToken = Token(opToken.lineCount, newType)
@@ -720,7 +587,7 @@ class ParserX(
                 newOpToken,
                 left,
                 newRight,
-                Type.ASSIGNMENT
+                ASSIGNMENT
             )
         }
         return BinaryOperation(
@@ -737,100 +604,55 @@ class ParserX(
         //  for array access parsing
         while (!isEOF()) {
             val nextOp = peek()
-            if (nextOp.type != Type.DOT // (left is class) trying to call a method on an object. e.g. person.sayHello()
-                && !(nextOp.type == Type.OPEN_CURVE && !isLiteral(left)) // (left points/is a unit)
-                && nextOp.type != Type.OPEN_SQUARE // array element access
-                && nextOp.type != Type.DOUBLE_COLON // value casting
-                && nextOp.type != Type.COLON // event registration
+            if (nextOp.type != DOT // (left is class) trying to call a method on an object. e.g. person.sayHello()
+                && !(nextOp.type == OPEN_CURVE && !isLiteral(left)) // (left points/is a unit)
+                && nextOp.type != OPEN_SQUARE // array element access
+                && nextOp.type != DOUBLE_COLON // value casting
+                && nextOp.type != COLON // event registration
             ) break
 
             left = when (nextOp.type) {
                 // calling shadow func
-                Type.OPEN_CURVE -> unitCall(left)
-                Type.DOUBLE_COLON -> {
+                OPEN_CURVE -> unitCall(left)
+                DOUBLE_COLON -> {
                     skip()
                     Cast(nextOp, left, readSignature(next()))
                 }
-                Type.COLON -> {
+                COLON -> {
                     skip()
                     eventRegistration(left)
                 }
-                else -> {
-                    val sig = left.sig()
-                    if (sig.isJava()) javaCall(left, sig)
-                    else classElementCall(left)
-                }
+                else -> javaCall(left)
             }
         }
         return left
     }
 
     private fun isLiteral(expression: Expression) = when (expression) {
-        is IntLiteral,
-        is StringLiteral, -> true
-        is BoolLiteral -> true
-        is CharLiteral -> true
+        is IntLiteral, is StringLiteral, is BoolLiteral, is CharLiteral -> true
         else -> false
-    }
-
-    private fun checkMutability(where: Token, variableExpression: Expression) {
-        // it's fine if it's array access, array elements are always mutable
-        if (variableExpression is JavaFieldAccess
-            || (variableExpression is JavaPropertyField)) return
-
-        val variableName: String
-        val index: Int
-
-        when (variableExpression) {
-            is Alpha -> {
-                variableName = variableExpression.value
-                index = variableExpression.index
-            }
-
-            is ForeignField -> {
-                variableName = variableExpression.property
-                index = variableExpression.uniqueVariable.index
-            }
-
-            else -> {
-                where.error<String>("Expected a variable to assign")
-                throw RuntimeException()
-            }
-        }
-        // Variable Index
-        // Below 0: represents a name type, a function? a class? etc.
-        // Above 0: memory index to know where the variable is stored
-        if (index < 0) {
-            where.error<String>("Expected a variable to assign")
-            throw RuntimeException()
-        }
-        val mutable = manager.resolveVr(variableName)!!.mutable
-        if (!mutable) {
-            where.error<String>("Variable $variableName is marked immutable")
-            throw RuntimeException()
-        }
     }
 
     private fun eventRegistration(jExpr: Expression): Expression {
         // Button1:Click() { .. }
-        val where = next()
-        val eventName = readAlpha(where)
         if (!jExpr.sig().isJava())
             throw RuntimeException("Cannot register events on non Java objects")
+        val where = next()
+        val eventName = readAlpha(where)
         val requiredArgs = mutableListOf<Pair<String, Signature>>()
         manager.enterScope()
-        if (consumeNext(Type.OPEN_CURVE)) {
-            while (!isEOF() && peek().type != Type.CLOSE_CURVE) {
+        if (consumeNext(OPEN_CURVE)) {
+            while (!isEOF() && peek().type != CLOSE_CURVE) {
                 val parameterName = readAlpha()
-                expectType(Type.COLON)
+                expectType(COLON)
                 val signature = readSignature(next())
 
-                manager.defineVariable(parameterName, true, signature, false)
+                manager.defineVariable(parameterName, signature, false)
                 requiredArgs += parameterName to signature
-                if (!isNext(Type.COMMA)) break
+                if (!isNext(COMMA)) break
                 skip()
             }
-            expectType(Type.CLOSE_CURVE)
+            expectType(CLOSE_CURVE)
         }
         val body = expressions()
         manager.leaveScope()
@@ -838,12 +660,10 @@ class ParserX(
     }
 
     private fun javaCall(
-        jExpr: Expression,
-        jSig: Signature
-    ): Expression {
+        jExpr: Expression): Expression {
         // we gotta adopt it to support objects too!
-
         skip()
+        val jSig = jExpr.sig()
         // either field name or method name
         val accessNameT = next()
         val accessName = readAlpha(accessNameT)
@@ -857,10 +677,10 @@ class ParserX(
         jSig as JavaObjectSign
         val clazz = jSig.clazz
 
-        if (consumeNext(Type.OPEN_CURVE)) {
+        if (consumeNext(OPEN_CURVE)) {
             // java method call
-            val args = parseArguments()
-            expectType(Type.CLOSE_CURVE)
+            val args = parseArgs()
+            expectType(CLOSE_CURVE)
 
             val argTypes = args.map { it.sig() }
 
@@ -921,133 +741,6 @@ class ParserX(
         )
     }
 
-    private fun classElementCall(objExpr: Expression): Expression {
-        skip()
-
-        val element = next()
-        val elementName = readAlpha(element)
-
-        val moduleInfo = getModuleInfo(element, objExpr)
-        if (isNext(Type.OPEN_CURVE))
-            return classMethodCall(objExpr, moduleInfo, elementName)
-        return classPropertyAccess(objExpr, moduleInfo, elementName)
-    }
-
-    private fun classPropertyAccess(
-        objectExpression: Expression,
-        moduleInfo: ModuleInfo,
-        property: String
-    ): ForeignField {
-        // Plan:
-        //  Global variables of other class are located in scope 0
-        //  So we need to just maintain position of that variable in
-        //  super scope, then access it at runtime
-        val uniqueVariable = executor.getModule(moduleInfo.name).resolveGlobalVr(moduleInfo.where, property)
-            ?: moduleInfo.where.error("Could not find global variable '$property' in module ${moduleInfo.name}")
-        return ForeignField(
-            where = moduleInfo.where,
-            static = isStatic(objectExpression),
-            objectExpression = objectExpression,
-            property = property,
-            uniqueVariable,
-            moduleInfo,
-        )
-    }
-
-    private fun classMethodCall(
-        objectExpression: Expression,
-        moduleInfo: ModuleInfo,
-        elementName: String
-    ): ClassMethodCall {
-        val arguments = callArguments()
-
-        // bump argsSize if it's linked invocation
-        val argsSize = if (moduleInfo.linked) arguments.size + 1 else arguments.size
-
-        val fnReference = executor.getModule(moduleInfo.name).resolveGlobalFn(moduleInfo.where, elementName, argsSize)
-
-        if (fnReference == null) {
-            moduleInfo.where.error<String>("Could not find $elementName(${arguments.toSignString()}) function in module ${moduleInfo.name}")
-            throw RuntimeException() // not reached
-        }
-
-        return ClassMethodCall(
-            where = objectExpression.marking!!,
-            static = isStatic(objectExpression),
-            objectExpression = objectExpression,
-            method = elementName,
-            arguments = arguments,
-            reference = fnReference,
-            moduleInfo = moduleInfo
-        )
-    }
-
-    // Whether the expression references an external static
-    // included class
-    private fun isStatic(expression: Expression)
-        = expression is Alpha && manager.staticClasses.contains(expression.value)
-
-    private fun getModuleInfo(
-        where: Token,
-        objectExpression: Expression
-    ): ModuleInfo {
-        // First Case: Pure static invocation `Person.sayHello()`
-        // Second Case: Linked Static Invocation
-        //    let myString = " Meow "
-        //    println(myString.trim())
-        // Third Case: Object Invocation
-        //    let myPerson = new Person("Miaw")
-        //    println(myPerson.sayHello())
-        if (objectExpression is Alpha && objectExpression.index == -2) {
-            // Pure static invocation
-            return ModuleInfo(where, objectExpression.value, false)
-        } else {
-            val signature = objectExpression.sig()
-            when (signature) {
-                is SimpleSignature -> {
-                    // Linked Static Invocation (String, Int, Array)
-                    return ModuleInfo(where, getLinkedModule(signature, where), true)
-                }
-
-                is ObjectExtension -> {
-                    // Object Invocation
-                    return ModuleInfo(where, signature.extensionClass, false)
-                }
-                else -> throw RuntimeException()
-            }
-        }
-    }
-
-    private fun getLinkedModule(
-        signature: Signature,
-        where: Token
-    ) = when (signature) {
-        Sign.NONE -> where.error("Signature type NONE has no module")
-        Sign.ANY -> where.error("Signature type ANY has no module")
-        Sign.CHAR -> where.error("Signature type CHAR has no module")
-        Sign.FLOAT -> where.error("Signature type FLOAT has no module")
-        Sign.UNIT -> where.error("Signature type UNIT has no module")
-        Sign.OBJECT -> where.error("Signature type OBJECT has no module") // (Raw Object sign)
-        Sign.INT -> "eint"
-        Sign.STRING -> "string"
-        Sign.BOOL -> "bool"
-        Sign.ARRAY -> "array"
-        Sign.TYPE -> "etype"
-        else -> where.error("Unknown object signature for module link $signature")
-    }
-
-    private fun resolveGlobalVr(where: Token, name: String): UniqueVariable? {
-        val variable = manager.resolveGlobalVr(name) ?: return null
-        if (!variable.public) where.error<String>("Variable $name is marked private")
-        return variable
-    }
-
-    private fun resolveGlobalFn(where: Token, name: String, numArgs: Int): FunctionReference? {
-        val reference = manager.resolveFn(name, numArgs) ?: return null
-        if (!reference.public) where.error<String>("Function $name is marked private")
-        return reference
-    }
-
     private fun operatorPrecedence(type: Flag) = when (type) {
         Flag.ASSIGNMENT_TYPE -> 1
         Flag.IS -> 2
@@ -1066,10 +759,10 @@ class ParserX(
     private fun parseTerm(): Expression {
         // a term is only one value, like 'a', '123'
         when (peek().type) {
-            Type.OPEN_CURVE -> {
+            OPEN_CURVE -> {
                 skip()
                 val expr = parseStatement()
-                expectType(Type.CLOSE_CURVE)
+                expectType(CLOSE_CURVE)
                 return expr
             }
 
@@ -1081,13 +774,15 @@ class ParserX(
                 val value = parseValue(token)
                 if (!token.hasFlag(Flag.CONSTANT_VALUE) // not a hard constant, like `123` or `"Hello, World"`
                     && !isEOF()
-                    && peek().type == Type.OPEN_CURVE)
+                    && peek().type == OPEN_CURVE)
                     return unitCall(value)
                 return value
             }
             token.hasFlag(Flag.UNARY) -> return UnaryOperation(token, token.type, parseTerm(), true)
             token.hasFlag(Flag.NATIVE_CALL) -> {
-                val arguments = callArguments()
+                expectType(OPEN_CURVE)
+                val arguments = parseArgs()
+                expectType(CLOSE_CURVE)
                 return NativeCall(token, token.type, arguments)
             }
         }
@@ -1098,19 +793,19 @@ class ParserX(
 
     private fun parseValue(token: Token): Expression {
         return when (token.type) {
-            Type.NIL -> NilLiteral(token)
-            Type.E_TRUE, Type.E_FALSE -> BoolLiteral(token, token.type == Type.E_TRUE)
-            Type.E_INT -> IntLiteral(token, token.data as Int)
-            Type.E_FLOAT -> FloatLiteral(token, token.data as Float)
-            Type.E_STRING -> StringLiteral(token, token.data as String)
-            Type.E_CHAR -> CharLiteral(token, token.data as Char)
-            Type.AT -> parseStruct()
-            Type.ALPHA -> verifyAlpha(token)
-            Type.CLASS_VALUE -> parseType(token)
+            NIL -> NilLiteral(token)
+            E_TRUE, E_FALSE -> BoolLiteral(token, token.type == E_TRUE)
+            E_INT -> IntLiteral(token, token.data as Int)
+            E_FLOAT -> FloatLiteral(token, token.data as Float)
+            E_STRING -> StringLiteral(token, token.data as String)
+            E_CHAR -> CharLiteral(token, token.data as Char)
+            AT -> parseStruct()
+            ALPHA -> verifyAlpha(token)
+            CLASS_VALUE -> parseType(token)
 
-            Type.OPEN_CURVE -> {
+            OPEN_CURVE -> {
                 val expr = parseStatement()
-                expectType(Type.CLOSE_CURVE)
+                expectType(CLOSE_CURVE)
                 expr
             }
 
@@ -1143,35 +838,35 @@ class ParserX(
         val events = HashMap<String, Pair<List<Pair<String, Signature>>, Expression>>()
         val children = ArrayList<Struct>()
 
-        val identifier = if (isNext(Type.ALPHA)) readAlpha() else clazz.simpleName + System.currentTimeMillis()
+        val identifier = if (isNext(ALPHA)) readAlpha() else clazz.simpleName + System.currentTimeMillis()
 
-        expectType(Type.OPEN_CURLY)
-        while (!isNext(Type.CLOSE_CURLY)) {
-            if (consumeNext(Type.AT)) {
+        expectType(OPEN_CURLY)
+        while (!isNext(CLOSE_CURLY)) {
+            if (consumeNext(AT)) {
                 children += parseStruct()
                 continue
             }
             val propNameToken = next()
-            if (propNameToken.type == Type.WHEN) {
-                expectType(Type.DOT)
+            if (propNameToken.type == WHEN) {
+                expectType(DOT)
                 // event registration
                 val eventName = readAlpha()
-                val args = if (isNext(Type.OPEN_CURVE)) readRequiredArgs() else emptyList()
-                expectType(Type.COLON)
+                val args = if (isNext(OPEN_CURVE)) readRequiredArgs() else emptyList()
+                expectType(COLON)
                 val body = parseElement()
                 events += eventName to (args to body)
             } else {
                 val propName = readAlpha(propNameToken)
                 val method = clazz.methods.find { it.name == propName && it.parameterCount == 1 }
                     ?: propNameToken.error("Could not find property name '$propName' on component '$name'")
-                expectType(Type.COLON)
+                expectType(COLON)
                 val propValue = parseStatement()
                 props += method to propValue
 
             }
-            if (!consumeNext(Type.COMMA)) break
+            if (!consumeNext(COMMA)) break
         }
-        expectType(Type.CLOSE_CURLY)
+        expectType(CLOSE_CURLY)
 
         return Struct(
             identifier,
@@ -1217,51 +912,44 @@ class ParserX(
     }
 
     private fun parseType(token: Token): TypeLiteral {
-        expectType(Type.DOUBLE_COLON)
+        expectType(DOUBLE_COLON)
         return TypeLiteral(token, readSignature(next()))
     }
 
     private fun unitCall(unitExpr: Expression): Expression {
-        val arguments = callArguments()
-        if (unitExpr is Alpha) {
-            val name = unitExpr.value
-            val fnExpr = manager.resolveFn(name, arguments.size)
-            if (fnExpr != null) {
-                if (fnExpr.argsSize == -1)
-                    throw RuntimeException("[Internal] Function args size is not yet set")
-                return MethodCall(unitExpr.marking!!, fnExpr, arguments)
-            }
+        // TODO:
+        // In future we need to ensure unitExpr is alpha
+        expectType(OPEN_CURVE)
+        val arguments = parseArgs()
+        expectType(Type.CLOSE_CURVE)
+        val name = (unitExpr as Alpha).value
+        val fnExpr = manager.resolveFn(name, arguments.size)
+        if (fnExpr != null) {
+            if (fnExpr.argsSize == -1)
+                throw RuntimeException("[Internal] Function args size is not yet set")
+            return MethodCall(unitExpr.marking!!, fnExpr, arguments)
         }
         throw RuntimeException("Not handled lol")
     }
 
-    private fun callArguments(): List<Expression> {
-        expectType(Type.OPEN_CURVE)
-        val arguments = parseArguments()
-        expectType(Type.CLOSE_CURVE)
-        return arguments
-    }
-
-    private fun parseArguments(): List<Expression> {
+    private fun parseArgs(): List<Expression> {
+        while (!isEOF() && isNext(OPEN_CURVE)) return emptyList()
         val expressions = ArrayList<Expression>()
-        if (!isEOF() && peek().type == Type.CLOSE_CURVE)
-            return expressions
         while (!isEOF()) {
-            expressions.add(parseStatement())
-            if (!isNext(Type.COMMA)) break
-            skip()
+            expressions += parseStatement()
+            if (isNext(COMMA)) skip() else break
         }
         return expressions
     }
 
     private fun readAlpha(): String {
         val token = next()
-        if (token.type != Type.ALPHA) return token.error("Expected alpha token got $token")
+        if (token.type != ALPHA) return token.error("Expected alpha token got $token")
         return token.data as String
     }
 
     private fun readAlpha(token: Token) =
-        if (token.type == Type.ALPHA) token.data as String
+        if (token.type == ALPHA) token.data as String
         else token.error("Was expecting an alpha token")
 
     private fun expectType(type: Type): Token {
@@ -1300,10 +988,4 @@ class ParserX(
     }
 
     private fun isEOF() = index == size
-}
-
-private fun List<Expression>.toSignString(): String {
-    val string = StringJoiner(", ")
-    for (expression in this) string.add(expression.sig().logName())
-    return string.toString()
 }

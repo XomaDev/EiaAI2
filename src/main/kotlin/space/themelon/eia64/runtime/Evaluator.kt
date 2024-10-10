@@ -15,7 +15,6 @@ import space.themelon.eia64.signatures.*
 import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.syntax.Type.*
 import java.lang.reflect.Modifier
-import java.util.Scanner
 import kotlin.collections.ArrayList
 import kotlin.math.pow
 import kotlin.random.Random
@@ -115,46 +114,18 @@ class Evaluator(
         return component
     }
 
-    private fun update(
-        index: Int,
-        name: String,
-        value: Any
-    ) {
+    private fun update(index: Int, name: String, value: Any) {
         (memory.getVar(index, name) as Entity).update(value)
     }
 
-    private fun update(
-        aMemory: Memory,
-        index: Int,
-        name: String,
-        value: Any
-    ) {
+    private fun update(aMemory: Memory, index: Int, name: String, value: Any) {
         (aMemory.getVar(index, name) as Entity).update(value)
     }
 
-    override fun variable(variable: ExplicitVariable): Any {
+    override fun variable(variable: Variable): Any {
         val name = variable.name
-        val signature = variable.explicitSignature
         val value = unboxEval(variable.expr)
-        val mutable = variable.mutable
-
-        memory.declareVar(name, Entity(name, mutable, value, signature))
-        return value
-    }
-
-    override fun autoVariable(autoVariable: AutoVariable): Any {
-        val name = autoVariable.name
-        val value = unboxEval(autoVariable.expr)
-        val signature = getSignature(value)
-        memory.declareVar(
-            name,
-            Entity(
-                name,
-                true,
-                unbox(value),
-                signature
-            )
-        )
+        memory.declareVar(name, Entity(name, true, value, variable.sig()))
         return value
     }
 
@@ -293,18 +264,6 @@ class Evaluator(
         return Nothing.INSTANCE
     }
 
-    override fun include(include: Include): Any {
-        include.names.forEach { executor.executeModule(it) }
-        return EBool(true)
-    }
-
-    // creating new eia class instances, this feature has been paused for now
-    override fun new(new: NewObj): Evaluator {
-        val evaluator = executor.newEvaluator(new.name)
-        fnInvoke(new.reference.fnExpression!!, evaluateArgs(new.arguments))
-        return evaluator
-    }
-
     override fun newJava(newInstance: NewInstance): Any {
         val evaldArgs = newInstance.arguments.map { unboxEval(it).eiaToJava() }.toTypedArray()
         return EJava(newInstance.constructor.newInstance(*evaldArgs), "INSTANCE(${newInstance.packageName})")
@@ -360,7 +319,7 @@ class Evaluator(
 
     override fun nativeCall(call: NativeCall): Any {
         when (val type = call.call) {
-            PRINT, PRINTLN -> {
+            PRINT -> {
                 var printCount = 0
                 call.arguments.forEach {
                     var printable = unboxEval(it)
@@ -369,12 +328,13 @@ class Evaluator(
                     printCount += printable.length
                     executor.standardOutput.print(printable)
                 }
-                if (type == PRINTLN) executor.standardOutput.print('\n')
+                executor.standardOutput.print('\n')
                 return Nothing.INSTANCE
             }
 
-            READ, READLN -> {
-                return EString(Scanner(executor.standardInput).let { if (type == READ) it.next() else it.nextLine() })
+            PRINTF -> {
+                // TODO! yet
+                throw RuntimeException("TODO")
             }
 
             SLEEP -> {
@@ -463,21 +423,6 @@ class Evaluator(
 
             TYPE_OF -> return EType(getSignature(unboxEval(call.arguments[0])))
 
-            INCLUDE -> {
-                val obj = unboxEval(call.arguments[0])
-                if (obj !is EString)
-                    throw RuntimeException("Expected a string argument for include() but got $obj")
-                val parts = obj.get().split(":")
-                if (parts.size != 2)
-                    throw RuntimeException("include() received invalid argument: $obj")
-                var group = parts[0]
-                if (group.isEmpty()) group = Executor.STD_LIB
-
-                val name = parts[1]
-                executor.addModule("$group/$name.eia", name)
-                return Nothing.INSTANCE
-            }
-
             COPY -> {
                 val obj = unboxEval(call.arguments[0])
                 if (obj !is Primitive<*> || !obj.isCopyable())
@@ -498,12 +443,6 @@ class Evaluator(
             EXIT -> {
                 Executor.EIA_SHUTDOWN(intExpr(call.arguments[0]).get())
                 return EBool(true) // never reached (hopefully?)
-            }
-
-            MEM_CLEAR -> {
-                // for clearing memory of the current class
-                memory.clearMemory()
-                return Nothing.INSTANCE
             }
 
             else -> throw RuntimeException("Unknown native call operation: '$type'")
