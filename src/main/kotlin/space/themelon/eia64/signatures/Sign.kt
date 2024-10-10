@@ -10,6 +10,7 @@ object Sign {
     private const val NUM_SIGN = "sig_num"
     private const val INT_SIGN = "sig_eint"
     private const val FLOAT_SIGN = "sig_float"
+    private const val DOUBLE_SIGN = "sig_double"
     private const val STRING_SIGN = "sig_string"
     private const val CHAR_SIGN = "sig_char"
     private const val BOOL_SIGN = "sig_bool"
@@ -26,6 +27,7 @@ object Sign {
     val NUM = SimpleSignature(NUM_SIGN)
     val INT = SimpleSignature(INT_SIGN)
     val FLOAT = SimpleSignature(FLOAT_SIGN)
+    val DOUBLE = SimpleSignature(DOUBLE_SIGN)
     val STRING = SimpleSignature(STRING_SIGN)
     val CHAR = SimpleSignature(CHAR_SIGN)
     val BOOL = SimpleSignature(BOOL_SIGN)
@@ -41,6 +43,7 @@ object Sign {
             NUM -> Type.E_NUMBER
             INT -> Type.E_INT
             FLOAT -> Type.E_FLOAT
+            DOUBLE -> Type.E_DOUBLE
             STRING -> Type.E_STRING
             CHAR -> Type.E_CHAR
             BOOL -> Type.E_BOOL

@@ -30,7 +30,7 @@ enum class Type {
     IS,
 
     E_NIL,
-    E_NUMBER, E_INT, E_FLOAT, E_BOOL, E_STRING, E_CHAR, E_ANY, E_UNIT, E_TYPE, E_JAVA,
+    E_NUMBER, E_INT, E_FLOAT, E_DOUBLE, E_BOOL, E_STRING, E_CHAR, E_ANY, E_UNIT, E_TYPE, E_JAVA,
 
     ALPHA,
     E_TRUE, E_FALSE, CLASS_VALUE,
@@ -120,6 +120,7 @@ enum class Type {
                 it["Number"] = StaticToken(E_NUMBER, arrayOf(Flag.CLASS))
                 it["Int"] = StaticToken(E_INT, arrayOf(Flag.CLASS))
                 it["Float"] = StaticToken(E_FLOAT, arrayOf(Flag.CLASS))
+                it["Double"] = StaticToken(E_DOUBLE, arrayOf(Flag.CLASS))
                 it["Bool"] = StaticToken(E_BOOL, arrayOf(Flag.CLASS))
                 it["String"] = StaticToken(E_STRING, arrayOf(Flag.CLASS))
                 it["Char"] = StaticToken(E_CHAR, arrayOf(Flag.CLASS))

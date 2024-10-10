@@ -15,8 +15,6 @@ class EJava(
 
     override fun get() = value
 
-    override fun stdlibName() = throw NotImplementedError()
-
     override fun isCopyable() = false
 
     override fun copy() = throw UnsupportedOperationException()

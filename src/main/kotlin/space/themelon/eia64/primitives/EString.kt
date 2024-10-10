@@ -25,8 +25,6 @@ class EString(
     }
 
     override fun get(): String = string
-    override fun stdlibName() = "string"
-
     override fun isCopyable() = true
     override fun copy() = EString(string)
 

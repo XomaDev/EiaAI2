@@ -12,8 +12,6 @@ class EFloat(initialValue: Float): Primitive<EFloat>, Comparable<EFloat>, Numeri
 
     override fun get() = floatValue
 
-    override fun stdlibName() = "float"
-
     override fun isCopyable() = true
     override fun copy() = EFloat(floatValue)
 

@@ -27,16 +27,14 @@ abstract class Signature {
     abstract fun logName(): String
 
     companion object {
-        fun signFromJavaClass(clazz: Class<*>): Signature {
-            return when (clazz.name) {
-                "java.lang.Integer", "int" -> Sign.INT
-                "java.lang.Boolean", "boolean" -> Sign.BOOL
-                "java.lang.Float", "float" -> Sign.FLOAT
-                "java.lang.Character", "char" -> Sign.CHAR
-                "java.lang.CharSequence", "java.lang.String" -> Sign.STRING
-                "void" -> Sign.NONE
-                else -> JavaObjectSign(clazz)
-            }
+        fun signFromJavaClass(clazz: Class<*>) = when (clazz.name) {
+            "java.lang.Integer", "int" -> Sign.INT
+            "java.lang.Boolean", "boolean" -> Sign.BOOL
+            "java.lang.Float", "float" -> Sign.FLOAT
+            "java.lang.Character", "char" -> Sign.CHAR
+            "java.lang.CharSequence", "java.lang.String" -> Sign.STRING
+            "void" -> Sign.NONE
+            else -> JavaObjectSign(clazz)
         }
     }
 }

@@ -145,26 +145,15 @@ class Lexer(private val source: String) {
 
     private fun parseNumeric(): Token {
         val content = StringBuilder()
+        while (!isEOF() && peek().isDigit()) content.append(next())
 
-        while (!isEOF() && isNumeric(peek())) content.append(next())
-
-        val type: Type
-        val value: Any
-
-        if (!isEOF() && peek() == '.' && isNumeric(peekNext())) {
-            type = E_FLOAT
+        val hasDot = !isEOF() && consumeNext('.')
+        if (hasDot && peek().isDigit()) {
             content.append('.')
-            next()
-            while (!isEOF() && isNumeric(peek())) content.append(next())
-            value = content.toString().toFloat()
-        } else {
-            type = E_INT
-            value = content.toString().toInt()
+            while (!isEOF() && peek().isDigit()) content.append(next())
         }
-        return Token(line,
-            type,
-            arrayOf(Flag.VALUE, Flag.CONSTANT_VALUE),
-            value)
+        val type = if (consumeNext('D')) E_DOUBLE else if (hasDot) E_FLOAT else E_INT
+        return Token(line, type, arrayOf(Flag.VALUE, Flag.CONSTANT_VALUE), content.toString())
     }
 
     private fun parseHexColor(): Token {

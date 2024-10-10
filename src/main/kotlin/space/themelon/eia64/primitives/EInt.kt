@@ -11,7 +11,6 @@ class EInt(initialValue: Int): Primitive<EInt>, Comparable<EInt>, Numeric {
     }
 
     override fun get() = intValue
-    override fun stdlibName() = "eint"
 
     override fun isCopyable() = true
     override fun copy() = EInt(intValue)

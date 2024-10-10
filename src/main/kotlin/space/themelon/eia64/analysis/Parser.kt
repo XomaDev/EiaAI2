@@ -604,7 +604,14 @@ class Parser(
     }
 
     private fun isLiteral(expression: Expression) = when (expression) {
-        is IntLiteral, is StringLiteral, is BoolLiteral, is CharLiteral -> true
+        is NilLiteral,
+        is IntLiteral,
+        is FloatLiteral,
+        is DoubleLiteral,
+        is StringLiteral,
+        is BoolLiteral,
+        is CharLiteral -> true
+
         else -> false
     }
 
@@ -723,8 +730,9 @@ class Parser(
         return when (token.type) {
             NIL -> NilLiteral(token)
             E_TRUE, E_FALSE -> BoolLiteral(token, token.type == E_TRUE)
-            E_INT -> IntLiteral(token, token.data as Int)
-            E_FLOAT -> FloatLiteral(token, token.data as Float)
+            E_INT -> IntLiteral(token, token.data.toString().toInt())
+            E_FLOAT -> FloatLiteral(token, token.data.toString().toFloat())
+            E_DOUBLE -> DoubleLiteral(token, token.data.toString().toDouble())
             E_STRING -> StringLiteral(token, token.data as String)
             E_CHAR -> CharLiteral(token, token.data as Char)
             AT -> parseStruct()

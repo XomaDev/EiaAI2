@@ -71,6 +71,7 @@ class Evaluator(
     override fun nilLiteral(nil: NilLiteral) = ENil()
     override fun intLiteral(literal: IntLiteral) = EInt(literal.value)
     override fun floatLiteral(literal: FloatLiteral) = EFloat(literal.value)
+    override fun doubleLiteral(literal: DoubleLiteral) = EDouble(literal.value)
 
     override fun boolLiteral(literal: BoolLiteral) = EBool(literal.value)
     override fun stringLiteral(literal: StringLiteral) = EString(literal.value)
@@ -309,8 +310,10 @@ class Evaluator(
             }
 
             PRINTF -> {
-                // TODO! yet
-                throw RuntimeException("TODO")
+                val string = unboxEval(call.arguments[0]).toString()
+                val args = call.arguments.map { unboxEval(it) }
+                executor.standardOutput.print(String.format(string, *args.toTypedArray()))
+                return Nothing.INSTANCE
             }
 
             SLEEP -> {

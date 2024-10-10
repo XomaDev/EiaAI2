@@ -11,7 +11,6 @@ class EChar(initialValue: Char): Primitive<EChar> {
     }
 
     override fun get() = charValue
-    override fun stdlibName() = "char"
 
     override fun isCopyable() = true
     override fun copy() = EChar(charValue)

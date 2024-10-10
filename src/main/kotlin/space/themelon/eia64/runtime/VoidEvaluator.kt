@@ -43,6 +43,10 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
+    override fun doubleLiteral(literal: DoubleLiteral): Any {
+        throw ShutdownException()
+    }
+
     override fun variable(variable: Variable): Any {
         throw ShutdownException()
     }
