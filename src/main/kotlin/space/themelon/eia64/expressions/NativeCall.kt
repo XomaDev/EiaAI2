@@ -8,7 +8,7 @@ import space.themelon.eia64.syntax.Token
 import space.themelon.eia64.syntax.Type
 
 data class FunctionInfo(
-    val signature: Signature?, // return type of functions
+    val returnSignature: Signature?,
     val argsSize: Int,
     val argSignatures: List<Pair<String, Signature>> = emptyList()
 )
@@ -39,6 +39,12 @@ data class NativeCall(
             put(Type.TYPE_OF, FunctionInfo(Sign.TYPE, 1, listOf("any" to Sign.ANY)))
 
             put(Type.COPY, FunctionInfo(null, 1, listOf("any" to Sign.ANY)))
+
+            // App Inventor
+            put(Type.OPEN_SCREEN, FunctionInfo(Sign.NONE, 1, listOf("screenName" to Sign.INT)))
+            put(Type.CLOSE_SCREEN, FunctionInfo(Sign.NONE, 0))
+            put(Type.CLOSE_APP, FunctionInfo(Sign.NONE, 0))
+            put(Type.START_VALUE, FunctionInfo(Sign.NONE, 0))
         }
     }
 
@@ -54,7 +60,7 @@ data class NativeCall(
         if (expectedArgsSize != -1 && gotArgsSize != expectedArgsSize) {
             where.error<String>("Function $callName() expected $expectedArgsSize args but got $gotArgsSize")
         }
-        val returnSignature = functionInfo.signature ?: return arguments[0].sig()
+        val returnSignature = functionInfo.returnSignature ?: return arguments[0].sig()
         val expectedSignatureIterator = functionInfo.argSignatures.iterator()
         val argumentIterator = arguments.iterator()
 

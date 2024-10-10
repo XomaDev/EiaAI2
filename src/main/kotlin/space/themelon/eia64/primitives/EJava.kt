@@ -19,7 +19,5 @@ class EJava(
 
     override fun copy() = throw UnsupportedOperationException()
 
-    override fun toString(): String {
-        return "EJava($value)"
-    }
+    override fun toString() = value.toString()
 }

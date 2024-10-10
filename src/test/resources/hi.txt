@@ -1,3 +1,6 @@
-let value = 1.234D
+let ages = makeDict(
+  "melon": 16,
+  "dennis": 24
+)
 
-print(value)
+print(ages)

@@ -51,6 +51,14 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
+    override fun makeList(list: MakeList): Any {
+        throw ShutdownException()
+    }
+
+    override fun makeDict(dict: MakeDictionary): Any {
+        throw ShutdownException()
+    }
+
     override fun isStatement(isStatement: IsStatement): Any {
         throw ShutdownException()
     }

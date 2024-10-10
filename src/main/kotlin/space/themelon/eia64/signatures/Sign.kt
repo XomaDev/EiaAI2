@@ -1,7 +1,5 @@
 package space.themelon.eia64.signatures
 
-import space.themelon.eia64.syntax.Type
-
 object Sign {
 
     private const val NONE_SIGN = "sig_none" // used for internal return types of expressions
@@ -14,7 +12,8 @@ object Sign {
     private const val STRING_SIGN = "sig_string"
     private const val CHAR_SIGN = "sig_char"
     private const val BOOL_SIGN = "sig_bool"
-    private const val ARRAY_SIGN = "sig_array"
+    private const val LIST_SIGN = "sig_list"
+    private const val DICT_SIGN = "sig_dict"
     private const val UNIT_SIGN = "sig_unit"
     private const val CLASS_SIGN = "sig_class"
     private const val JAVA_OBJECT = "sig_java"
@@ -31,28 +30,9 @@ object Sign {
     val STRING = SimpleSignature(STRING_SIGN)
     val CHAR = SimpleSignature(CHAR_SIGN)
     val BOOL = SimpleSignature(BOOL_SIGN)
-    val ARRAY = SimpleSignature(ARRAY_SIGN)
+    val LIST = SimpleSignature(LIST_SIGN)
+    val DICT = SimpleSignature(DICT_SIGN)
     val UNIT = SimpleSignature(UNIT_SIGN)
     val TYPE = SimpleSignature(CLASS_SIGN)
     val JAVA = SimpleSignature(JAVA_OBJECT)
-
-    fun Signature.intoType(): Type {
-        return when (this) {
-            NONE -> throw RuntimeException("No equivalent type to NONE Sign")
-            ANY -> Type.E_ANY
-            NUM -> Type.E_NUMBER
-            INT -> Type.E_INT
-            FLOAT -> Type.E_FLOAT
-            DOUBLE -> Type.E_DOUBLE
-            STRING -> Type.E_STRING
-            CHAR -> Type.E_CHAR
-            BOOL -> Type.E_BOOL
-            UNIT -> Type.E_UNIT
-            TYPE -> Type.E_TYPE
-            JAVA -> Type.E_JAVA
-
-            is ClassSign -> Type.E_JAVA
-            else -> throw RuntimeException("Unknown signature $this provided for translation into Type")
-        }
-    }
 }

@@ -45,6 +45,13 @@ enum class Type {
     FOR, UNTIL,
     FUN,
     COPY, TIME, RAND, PRINT, PRINTF, LEN, SLEEP, FORMAT, EXIT,
+
+    MAKE_LIST, MAKE_DICT,
+
+    CLOSE_SCREEN, CLOSE_APP,
+    OPEN_SCREEN,
+    START_VALUE,
+
     IMPORT, NEW,
 
     RETURN, BREAK, CONTINUE,
@@ -125,7 +132,6 @@ enum class Type {
                 it["String"] = StaticToken(E_STRING, arrayOf(Flag.CLASS))
                 it["Char"] = StaticToken(E_CHAR, arrayOf(Flag.CLASS))
                 it["Any"] = StaticToken(E_ANY, arrayOf(Flag.CLASS))
-                it["Unit"] = StaticToken(E_UNIT, arrayOf(Flag.CLASS))
                 it["Type"] = StaticToken(E_TYPE, arrayOf(Flag.CLASS))
                 it["Java"] = StaticToken(E_JAVA, arrayOf(Flag.CLASS))
 
@@ -145,6 +151,9 @@ enum class Type {
                 it["typeOf"] = StaticToken(TYPE_OF, arrayOf(Flag.NATIVE_CALL))
                 it["copy"] = StaticToken(COPY, arrayOf(Flag.NATIVE_CALL))
 
+                it["makeList"] = StaticToken(MAKE_LIST)
+                it["makeDict"] = StaticToken(MAKE_DICT)
+
                 it["time"] = StaticToken(TIME, arrayOf(Flag.NATIVE_CALL))
                 it["rand"] = StaticToken(RAND, arrayOf(Flag.NATIVE_CALL))
                 it["print"] = StaticToken(PRINT, arrayOf(Flag.NATIVE_CALL))
@@ -152,6 +161,11 @@ enum class Type {
                 it["sleep"] = StaticToken(SLEEP, arrayOf(Flag.NATIVE_CALL))
                 it["len"] = StaticToken(LEN, arrayOf(Flag.NATIVE_CALL))
                 it["exit"] = StaticToken(EXIT, arrayOf(Flag.NATIVE_CALL))
+
+                it["closeScreen"] = StaticToken(CLOSE_SCREEN, arrayOf(Flag.NATIVE_CALL))
+                it["closeApp"] = StaticToken(CLOSE_APP, arrayOf(Flag.NATIVE_CALL))
+                it["openScreen"] = StaticToken(OPEN_SCREEN, arrayOf(Flag.NATIVE_CALL))
+                it["startValue"] = StaticToken(START_VALUE, arrayOf(Flag.NATIVE_CALL))
 
                 it["import"] = StaticToken(IMPORT)
 

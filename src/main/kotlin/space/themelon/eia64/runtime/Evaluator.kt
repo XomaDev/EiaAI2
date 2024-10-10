@@ -15,6 +15,7 @@ import space.themelon.eia64.signatures.*
 import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.syntax.Type.*
 import java.lang.reflect.Modifier
+import java.util.HashMap
 import kotlin.collections.ArrayList
 import kotlin.math.pow
 import kotlin.random.Random
@@ -115,10 +116,24 @@ class Evaluator(
         return component
     }
 
+    override fun makeList(makeList: MakeList): Any {
+        val list = java.util.ArrayList<Any?>()
+        makeList.elements.forEach { list += unboxEval(it) }
+        return EJava(list, "makeList<>")
+    }
+
+    override fun makeDict(makeDict: MakeDictionary): Any {
+        val dictionary = HashMap<Any?, Any?>()
+        makeDict.elements.forEach { dictionary += unboxEval(it.first) to unboxEval(it.second) }
+        return EJava(dictionary, "makeDict<>")
+    }
+
     private fun update(index: Int, name: String, value: Any) {
         (memory.getVar(index, name) as Entity).update(value)
     }
 
+    // Do not delete, could be useful in future
+    @Suppress("unused")
     private fun update(aMemory: Memory, index: Int, name: String, value: Any) {
         (aMemory.getVar(index, name) as Entity).update(value)
     }
@@ -422,6 +437,22 @@ class Evaluator(
             EXIT -> {
                 Executor.EIA_SHUTDOWN(intExpr(call.arguments[0]).get())
                 return EBool(true) // never reached (hopefully?)
+            }
+
+            OPEN_SCREEN -> {
+                val name = unboxEval(call.arguments[0]).toString()
+                // TODO
+                return Nothing.INSTANCE
+            }
+
+            CLOSE_SCREEN -> {
+                // TODO
+                return Nothing.INSTANCE
+            }
+
+            CLOSE_APP -> {
+                // TODO
+                return Nothing.INSTANCE
             }
 
             else -> throw RuntimeException("Unknown native call operation: '$type'")

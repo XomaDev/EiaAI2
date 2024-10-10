@@ -208,7 +208,7 @@ class Parser(
         expectType(CLOSE_CURVE)
 
         val elementSignature = when (entity.sig()) {
-            Sign.ARRAY -> Sign.ANY
+            Sign.LIST -> Sign.ANY
             Sign.STRING -> Sign.CHAR
 
             else -> {
@@ -583,21 +583,22 @@ class Parser(
                 && !(nextOp.type == OPEN_CURVE && !isLiteral(left)) // (left points/is a unit)
                 && nextOp.type != OPEN_SQUARE // array element access
                 && nextOp.type != DOUBLE_COLON // value casting
-                && nextOp.type != COLON // event registration
+                && (nextOp.type != COLON) // event registration
             ) break
+            if (nextOp.type == COLON && !left.sig().isJava()) break
 
-            left = when (nextOp.type) {
+             when (nextOp.type) {
                 // calling shadow func
-                OPEN_CURVE -> unitCall(left)
+                OPEN_CURVE -> left = unitCall(left)
                 DOUBLE_COLON -> {
                     skip()
-                    Cast(nextOp, left, readSignature(next()))
+                    left = Cast(nextOp, left, readSignature(next()))
                 }
                 COLON -> {
                     skip()
-                    eventRegistration(left)
+                    left = eventRegistration(left)
                 }
-                else -> javaCall(left)
+                else -> left = javaCall(left)
             }
         }
         return left
@@ -699,19 +700,16 @@ class Parser(
     }
 
     private fun parseTerm(): Expression {
-        // a term is only one value, like 'a', '123'
-        when (peek().type) {
-            OPEN_CURVE -> {
-                skip()
+        val token = next()
+        val type = token.type
+        when {
+            type == OPEN_CURVE -> {
                 val expr = parseStatement()
                 expectType(CLOSE_CURVE)
                 return expr
             }
-
-            else -> {}
-        }
-        val token = next()
-        when {
+            type == MAKE_LIST -> return makeList(token)
+            type == MAKE_DICT -> return makeDict(token)
             token.hasFlag(Flag.VALUE) -> return parseValue(token)
             token.hasFlag(Flag.UNARY) -> return UnaryOperation(token, token.type, parseTerm(), true)
             token.hasFlag(Flag.NATIVE_CALL) -> {
@@ -724,6 +722,27 @@ class Parser(
         back()
         if (canParseNext()) return parseStatement()
         return token.error("Unexpected token")
+    }
+
+    private fun makeList(where: Token): MakeList {
+        expectType(OPEN_CURVE)
+        val elements = parseArgs()
+        expectType(CLOSE_CURVE)
+        return MakeList(where, elements)
+    }
+
+    private fun makeDict(where: Token): MakeDictionary {
+        val elements = ArrayList<Pair<Expression, Expression>>()
+        expectType(OPEN_CURVE)
+        while (!isEOF() && !isNext(CLOSE_CURVE)) {
+            val key = parseExpr(0)
+            expectType(COLON)
+            val value = parseExpr(0)
+            elements += key to value
+            if (!consumeNext(COMMA)) break
+        }
+        expectType(CLOSE_CURVE)
+        return MakeDictionary(where, elements)
     }
 
     private fun parseValue(token: Token): Expression {

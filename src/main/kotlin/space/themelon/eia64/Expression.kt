@@ -20,6 +20,8 @@ abstract class Expression(
         fun charLiteral(literal: CharLiteral): R
         fun typeLiteral(literal: TypeLiteral): R
         fun alpha(alpha: Alpha): R
+        fun makeList(makeList: MakeList): R
+        fun makeDict(makeDict: MakeDictionary): R
         fun variable(variable: Variable): R
         fun isStatement(isStatement: IsStatement): R
         fun unaryOperation(expr: UnaryOperation): R

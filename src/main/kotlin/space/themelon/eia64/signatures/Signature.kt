@@ -19,6 +19,8 @@ abstract class Signature {
         Sign.CHAR -> "java.lang.Character"
         Sign.STRING -> "java.lang.String"
         Sign.BOOL -> "java.lang.Boolean"
+        Sign.LIST -> "java.util.ArrayList"
+        Sign.DICT -> "java.util.HashMap"
         JAVA -> "java.lang.Object"
         is ClassSign -> this.clazz.name
         else -> null
@@ -33,6 +35,8 @@ abstract class Signature {
             "java.lang.Float", "float" -> Sign.FLOAT
             "java.lang.Character", "char" -> Sign.CHAR
             "java.lang.CharSequence", "java.lang.String" -> Sign.STRING
+            "java.util.ArrayList" -> Sign.LIST
+            "java.util.HashMap" -> Sign.DICT
             "void" -> Sign.NONE
             else -> ClassSign(clazz)
         }
