@@ -198,7 +198,6 @@ class Evaluator(
                 is Alpha -> update(toUpdate.index, toUpdate.value, value)
                 is ForeignField -> updateForeignField(toUpdate, value)
                 is JavaFieldAccess -> updateJavaField(toUpdate, value)
-                is JavaPropertyField -> updateJavaProperty(toUpdate, value) // almost same as java field
                 else -> throw RuntimeException("Unknown left operand for [= Assignment]: $toUpdate")
             }
             value
@@ -513,41 +512,18 @@ class Evaluator(
         memory.leaveScope()
     }
 
-    private fun updateJavaProperty(property: JavaPropertyField, value: Any): Any {
-        if (property.setMethod == null) {
-            throw RuntimeException("Cannot set ${property.name}.${property.name}, method docent exist")
-        }
-        val jObj = (unboxEval(property.jExpr) as EJava).get()
-        property.setMethod.invoke(jObj, value.eiaToJava())
-        return value
-    }
-
     private fun updateJavaField(field: JavaFieldAccess, value: Any) {
         // do not evaluate field, it will lead to access
         field.field.set((unboxEval(field.jObject) as EJava).get(), value.eiaToJava())
     }
 
-    override fun javaPropertyField(jProperty: JavaPropertyField): Any {
-        // Consider a get() always, set() is handled by assignment op
-        val eJava = unboxEval(jProperty.jExpr) as EJava
-        if (jProperty.getMethod == null) {
-            throw RuntimeException("Cannot do ${eJava.name}.${jProperty.name}(), method docent exist")
-        }
-        return jProperty.getMethod.invoke(eJava.get())
-    }
-
     override fun javaMethodCall(jCall: JavaMethodCall): Any {
-        val evaluatedArgs = jCall.args.map { unboxEval(it).eiaToJava() }.toTypedArray()
+        val args = jCall.args.map { unboxEval(it).eiaToJava() }.toTypedArray()
         val method = jCall.method
 
-        return if (Modifier.isStatic(method.modifiers)) {
-            method.invoke(null, *evaluatedArgs)
-        } else {
-            method.invoke(
-                (unboxEval(jCall.jObject) as EJava).get(),
-                *evaluatedArgs
-            )
-        }.javaToEia()
+        val result = if (Modifier.isStatic(method.modifiers)) method.invoke(null, *args)
+        else method.invoke(unboxEval(jCall.jObject).eiaToJava(), *args)
+        return result.javaToEia()
     }
 
     override fun javaFieldAccess(access: JavaFieldAccess) =

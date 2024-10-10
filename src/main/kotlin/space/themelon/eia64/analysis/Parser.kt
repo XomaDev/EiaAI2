@@ -12,7 +12,7 @@ import space.themelon.eia64.syntax.Type
 import space.themelon.eia64.syntax.Type.*
 import java.lang.reflect.Method
 
-class ParserX(
+class Parser(
     private val executor: Executor,
 ) {
 
@@ -659,87 +659,63 @@ class ParserX(
         return EventRegistration(where, jExpr, eventName, requiredArgs, body)
     }
 
-    private fun javaCall(
-        jExpr: Expression): Expression {
-        // we gotta adopt it to support objects too!
-        skip()
-        val jSig = jExpr.sig()
-        // either field name or method name
-        val accessNameT = next()
-        val accessName = readAlpha(accessNameT)
+    private fun javaCall(left: Expression): Expression {
+        skip() // a dot
+        val where = next()
+        val name = readAlpha(where)
+        println(name)
 
-        if (jSig == Sign.JAVA) {
-            // generic type, we don't know the class
-            accessNameT.error<String>("Cannot call a method or access a field on generic Java object")
-            throw RuntimeException()
-        }
-
-        jSig as JavaObjectSign
-        val clazz = jSig.clazz
-
+        val clazz = javaClassOf(left.sig(), where)
         if (consumeNext(OPEN_CURVE)) {
-            // java method call
+            // a method call!
             val args = parseArgs()
             expectType(CLOSE_CURVE)
 
             val argTypes = args.map { it.sig() }
 
-            val argsSize = args.size
-            for (method in clazz.methods) {
-                if (method.name == accessName
-                    && method.parameterCount == argsSize
-                    && method.parameterTypes.map { Signature.signFromJavaClass(it) } == argTypes
-                    ) {
-                    return JavaMethodCall(
-                        accessNameT,
-                        jExpr,
-                        method,
-                        args,
-                        Signature.signFromJavaClass(method.returnType),
-                        false
-                    )
-                }
-            }
-
-            throw RuntimeException("Could not find method '$accessName' of args size $argsSize on class $clazz")
+            val method = clazz.methods.find {
+                it.name == name
+                        && it.parameterCount == args.size
+                        && it.parameterTypes
+                    .let { pTypes ->
+                        pTypes.indices.all { i -> matches(Signature.signFromJavaClass(pTypes[i]), argTypes[i]) }
+                    }
+            } ?: where.error("Cannot find method '$name' on class $clazz")
+            return JavaMethodCall(
+                where,
+                left,
+                method,
+                args,
+                Signature.signFromJavaClass(method.returnType)
+            )
         }
-        // java field access or method like `Text()`
-
-        // try searching for a field
-        for (field in clazz.fields) {
-            if (field.name == accessName) {
-                return JavaFieldAccess(
-                    accessNameT,
-                    jExpr,
-                    field,
-                    Signature.signFromJavaClass(field.type)
-                )
-            }
-        }
-
-        var setMethod: Method? = null
-        var getMethod: Method? = null
-        // search for a method with single parameter count and none
-        for (method in clazz.methods) {
-            if (method.name == accessName) {
-                if (method.parameterCount == 0) getMethod = method
-                else if (method.parameterCount == 1) setMethod = method
-                if (getMethod != null && setMethod != null) break
-            }
-        }
-        if (setMethod == null && getMethod == null) {
-            throw RuntimeException("Could not find property or field '$accessName' on class $clazz")
-        }
-        val signature = Signature.signFromJavaClass(getMethod?.returnType ?: getMethod!!.parameters[0].type)
-        return JavaPropertyField(
-            accessNameT,
-            jExpr,
-            accessName,
-            getMethod,
-            setMethod,
-            signature
+        // Oh! It's a field access
+        val field = clazz.fields.find { it.name == name } ?: where.error("Cannot find field '$name' in class $clazz")
+        return JavaFieldAccess(
+            where,
+            left,
+            field,
+            Signature.signFromJavaClass(field.type)
         )
     }
+
+    private fun javaClassOf(
+        signature: Signature,
+        where: Token
+    ): Class<*> = Class.forName(when (signature) {
+        Sign.NONE -> where.error("Signature NONE has no java module")
+        Sign.ANY -> where.error("Signature type ANY has no java module")
+        Sign.UNIT -> where.error("Signature type UNIT has no java module")
+        //Sign.OBJECT -> where.error("Signature type OBJECT has no java module") // (Raw Object sign)
+        Sign.INT -> "java.lang.Integer"
+        Sign.FLOAT -> "java.lang.Float"
+        Sign.CHAR -> "java.lang.Character"
+        Sign.STRING -> "java.lang.String"
+        Sign.BOOL -> "java.lang.Boolean"
+        Sign.JAVA -> "java.lang.Object"
+        is JavaObjectSign -> signature.clazz.name
+        else -> where.error("Unknown signature type $signature")
+    })
 
     private fun operatorPrecedence(type: Flag) = when (type) {
         Flag.ASSIGNMENT_TYPE -> 1
@@ -893,7 +869,7 @@ class ParserX(
             else {
                 val envObj = executor.javaObjMap[name]
                 if (envObj != null) {
-                    // java object access :)
+                    // jaa objects were injected :)
                     JavaName(token, name, false, JavaObjectSign(executor.knownJavaClasses[name]!!))
                 } else {
                     val staticClass = executor.knownJavaClasses[name]
@@ -921,7 +897,7 @@ class ParserX(
         // In future we need to ensure unitExpr is alpha
         expectType(OPEN_CURVE)
         val arguments = parseArgs()
-        expectType(Type.CLOSE_CURVE)
+        expectType(CLOSE_CURVE)
         val name = (unitExpr as Alpha).value
         val fnExpr = manager.resolveFn(name, arguments.size)
         if (fnExpr != null) {
@@ -933,7 +909,7 @@ class ParserX(
     }
 
     private fun parseArgs(): List<Expression> {
-        while (!isEOF() && isNext(OPEN_CURVE)) return emptyList()
+        while (!isEOF() && isNext(CLOSE_CURVE)) return emptyList()
         val expressions = ArrayList<Expression>()
         while (!isEOF()) {
             expressions += parseStatement()

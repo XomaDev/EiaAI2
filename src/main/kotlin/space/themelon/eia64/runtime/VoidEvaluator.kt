@@ -136,10 +136,6 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
-    override fun javaPropertyField(jProperty: JavaPropertyField): Any {
-        throw ShutdownException()
-    }
-
     override fun javaName(jName: JavaName): Any {
         throw ShutdownException()
     }

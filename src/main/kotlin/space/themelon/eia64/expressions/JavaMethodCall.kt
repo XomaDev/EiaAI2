@@ -11,7 +11,6 @@ data class JavaMethodCall(
     val method: Method,
     val args: List<Expression>,
     val callSignature: Signature,
-    val propertyType: Boolean
 ) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.javaMethodCall(this)

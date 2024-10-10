@@ -1,13 +1,11 @@
 package space.themelon.eia64.runtime
 
 import com.google.appinventor.components.runtime.AndroidViewComponent
-import space.themelon.eia64.Expression
-import space.themelon.eia64.analysis.ParserX
+import space.themelon.eia64.analysis.Parser
 import space.themelon.eia64.expressions.ExpressionList
 import space.themelon.eia64.expressions.Struct
 import space.themelon.eia64.primitives.EJava
 import space.themelon.eia64.syntax.Lexer
-import space.themelon.eia64.syntax.Token
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -24,10 +22,6 @@ class Executor {
         var EIA_SHUTDOWN: (Int) -> Unit = { exitCode -> exitProcess(exitCode) }
     }
 
-    init {
-        if (STD_LIB.isBlank()) throw RuntimeException("STD_LIB is not set")
-    }
-
     // why do we do this? sometimes while we are developing demonstrable
     // APIs for Eia64, we would want the output to be captured in memory and
     // sent somewhere else
@@ -37,8 +31,8 @@ class Executor {
     private val externalExecutors = HashMap<String, Evaluator>()
     private val mainEvaluator = Evaluator("Main", this)
 
-    private val externalParsers = HashMap<String, ParserX>()
-    private val mainParser = ParserX(this)
+    private val externalParsers = HashMap<String, Parser>()
+    private val mainParser = Parser(this)
 
     val javaObjMap = HashMap<String, EJava>()
     val knownJavaClasses = HashMap<String, Class<*>>()
@@ -72,7 +66,7 @@ class Executor {
     // called by parsers, parse the included module
     fun addModule(sourceFile: String, name: String): Boolean {
         if (externalParsers[name] != null) return false
-        externalParsers[name] = ParserX(this).also { it.parse(getTokens(sourceFile)) }
+        externalParsers[name] = Parser(this).also { it.parse(getTokens(sourceFile)) }
         return true
     }
 
