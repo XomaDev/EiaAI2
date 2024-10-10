@@ -276,8 +276,8 @@ class Evaluator(
         val promisedSignature = cast.expectSignature
         val gotSignature = getSignature(result)
 
-        if (promisedSignature is JavaObjectSign) {
-            if (gotSignature !is JavaObjectSign) {
+        if (promisedSignature is ClassSign) {
+            if (gotSignature !is ClassSign) {
                 cast.where.error<String>("Cannot cast $result to $promisedSignature")
                 throw RuntimeException()
             }
@@ -286,7 +286,7 @@ class Evaluator(
                 throw RuntimeException()
             }
         } else if (promisedSignature == Sign.JAVA) {
-            if (!(gotSignature is JavaObjectSign || gotSignature == Sign.JAVA)) {
+            if (!(gotSignature is ClassSign || gotSignature == Sign.JAVA)) {
                 cast.where.error<String>("Cannot cast $result to $promisedSignature")
                 throw RuntimeException()
             }

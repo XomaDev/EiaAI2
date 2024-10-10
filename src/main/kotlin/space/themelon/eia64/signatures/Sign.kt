@@ -51,7 +51,7 @@ object Sign {
             TYPE -> Type.E_TYPE
             JAVA -> Type.E_JAVA
 
-            is JavaObjectSign -> Type.E_JAVA
+            is ClassSign -> Type.E_JAVA
             else -> throw RuntimeException("Unknown signature $this provided for translation into Type")
         }
     }

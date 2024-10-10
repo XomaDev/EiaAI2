@@ -2,7 +2,7 @@ package space.themelon.eia64.expressions
 
 import com.google.appinventor.components.runtime.AndroidViewComponent
 import space.themelon.eia64.Expression
-import space.themelon.eia64.signatures.JavaObjectSign
+import space.themelon.eia64.signatures.ClassSign
 import space.themelon.eia64.signatures.Signature
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
@@ -18,5 +18,5 @@ data class Struct(
 ): Expression() {
     override fun <R> accept(v: Visitor<R>) = v.struct(this)
 
-    override fun sig() = JavaObjectSign(AndroidViewComponent::class.java)
+    override fun sig() = ClassSign(AndroidViewComponent::class.java)
 }

@@ -89,14 +89,6 @@ tasks.register("d8Eia") {
             )
         }
     }
-    finalizedBy("zipStdlib")
-}
-
-tasks.register<Zip>("zipStdlib") {
-    from(rootProject.file("stdlib"))
-    archiveFileName.set("stdlib.zip")
-    destinationDirectory.set(file("${rootProject.projectDir}/ext-skeleton/assets/"))
-
     finalizedBy(project(":ext-src").tasks.named("buildExtension"))
 }
 

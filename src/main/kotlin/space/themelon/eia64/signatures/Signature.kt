@@ -9,7 +9,7 @@ abstract class Signature {
 
     fun isNumeric() = this == Sign.NUM || this == Sign.INT || this == Sign.FLOAT
     fun isNumericOrChar() = isNumeric() || this == Sign.CHAR
-    fun isJava() = this == JAVA || this is JavaObjectSign
+    fun isJava() = this == JAVA || this is ClassSign
 
     fun javaClass(where: Token) = javaClass() ?: where.error("Could not find Java package for sign '${logName()}'")
 
@@ -20,7 +20,7 @@ abstract class Signature {
         Sign.STRING -> "java.lang.String"
         Sign.BOOL -> "java.lang.Boolean"
         JAVA -> "java.lang.Object"
-        is JavaObjectSign -> this.clazz.name
+        is ClassSign -> this.clazz.name
         else -> null
     })
 
@@ -34,7 +34,7 @@ abstract class Signature {
             "java.lang.Character", "char" -> Sign.CHAR
             "java.lang.CharSequence", "java.lang.String" -> Sign.STRING
             "void" -> Sign.NONE
-            else -> JavaObjectSign(clazz)
+            else -> ClassSign(clazz)
         }
     }
 }

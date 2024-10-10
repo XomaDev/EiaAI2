@@ -471,7 +471,7 @@ class Parser(
                     if (consumeNext(OPEN_CURVE)) {
                         val name = readAlpha()
                         expectType(CLOSE_CURVE)
-                        return JavaObjectSign(Class.forName(name))
+                        return ClassSign(Class.forName(name))
                     } else {
                         return Sign.JAVA
                     }
@@ -830,11 +830,11 @@ class Parser(
                 val envObj = executor.javaObjMap[name]
                 if (envObj != null) {
                     // jaa objects were injected :)
-                    JavaName(token, name, false, JavaObjectSign(executor.knownJavaClasses[name]!!))
+                    JavaName(token, name, false, ClassSign(executor.knownJavaClasses[name]!!))
                 } else {
                     val staticClass = executor.knownJavaClasses[name]
                     if (staticClass != null) {
-                        JavaName(token, name, true, JavaObjectSign(executor.knownJavaClasses[name]!!))
+                        JavaName(token, name, true, ClassSign(executor.knownJavaClasses[name]!!))
                     } else {
                         // Unresolved name
                         token.error("Cannot find symbol '$name'")

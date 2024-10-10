@@ -1,7 +1,7 @@
 package space.themelon.eia64.signatures
 
-data class JavaObjectSign(
+data class ClassSign(
     val clazz: Class<*>
 ): Signature() {
-    override fun logName() = "JavaObject($clazz)"
+    override fun logName() = "ClassSign($clazz)"
 }
