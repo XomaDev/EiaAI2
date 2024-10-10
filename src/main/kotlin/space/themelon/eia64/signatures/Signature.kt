@@ -35,10 +35,16 @@ abstract class Signature {
             "java.lang.Float", "float" -> Sign.FLOAT
             "java.lang.Character", "char" -> Sign.CHAR
             "java.lang.CharSequence", "java.lang.String" -> Sign.STRING
-            "java.util.ArrayList" -> Sign.LIST
-            "java.util.HashMap" -> Sign.DICT
             "void" -> Sign.NONE
-            else -> ClassSign(clazz)
+            else -> {
+                if (clazz == java.util.List::class.java
+                    || java.util.List::class.java.isAssignableFrom(clazz)
+                    || clazz == com.google.appinventor.components.runtime.util.YailList::class.java) Sign.LIST
+                else if (clazz == java.util.Map::class.java
+                    || java.util.Map::class.java.isAssignableFrom(clazz)
+                    || clazz == com.google.appinventor.components.runtime.util.YailDictionary::class.java) Sign.DICT
+                else ClassSign(clazz)
+            }
         }
     }
 }

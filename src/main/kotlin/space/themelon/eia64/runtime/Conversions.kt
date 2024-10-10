@@ -7,8 +7,8 @@ import space.themelon.eia64.primitives.*
 object Conversions {
 
     fun Any.eiaToJava(): Any? {
-        if (this !is Primitive<*>)
-            throw RuntimeException("Cannot convert to Java: $this")
+        if (this is Nothing) return null
+        if (this !is Primitive<*>) return this
         if (this is ENil) return null
         if (this is EJava) {
             // we got to do deep translation

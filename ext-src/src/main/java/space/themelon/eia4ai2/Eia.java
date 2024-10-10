@@ -1,5 +1,6 @@
 package space.themelon.eia4ai2;
 
+import android.util.Log;
 import com.google.appinventor.components.annotations.DesignerComponent;
 import com.google.appinventor.components.annotations.SimpleEvent;
 import com.google.appinventor.components.annotations.SimpleFunction;
@@ -46,6 +47,7 @@ public class Eia extends AndroidNonvisibleComponent implements OnInitializeListe
     // We need to only initialize Eia over here, so that we get to map
     // all the components in the Screen
     try {
+      Log.d("Eia", "onInitialize");
       loadEia();
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);

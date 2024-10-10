@@ -1,2 +1,1 @@
-let btn = get("Cat1")::Cat
-print(btn)
+print(!Cat1.IsMeow())

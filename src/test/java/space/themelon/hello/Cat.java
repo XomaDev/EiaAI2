@@ -1,5 +1,8 @@
 package space.themelon.hello;
 
+import java.util.Collections;
+import java.util.List;
+
 public class Cat {
 
   public final String name;
@@ -18,5 +21,13 @@ public class Cat {
 
   public static void sayMeow(CharSequence name) {
     System.out.println("Meow! " + name);
+  }
+
+  public List<String> AddressesAndNames() {
+    return Collections.emptyList();
+  }
+
+  public boolean IsMeow() {
+    return true;
   }
 }

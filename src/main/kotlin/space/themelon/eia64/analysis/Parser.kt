@@ -669,7 +669,7 @@ class Parser(
                 result = method
                 break
             }
-            if (result == null) where.error<String>("Cannot find method '$name' on class $clazz")
+            if (result == null) where.error<String>("Cannot find method '$name' in $clazz $argTypes")
             result!!
             return JavaMethodCall(
                 where,
@@ -736,7 +736,10 @@ class Parser(
             type == MAKE_LIST -> return makeList(token)
             type == MAKE_DICT -> return makeDict(token)
             token.hasFlag(Flag.VALUE) -> return parseValue(token)
-            token.hasFlag(Flag.UNARY) -> return UnaryOperation(token, token.type, parseTerm(), true)
+            // TODO:
+            //  Note: it previously used to call parseTerm() but we changed to parseElement()
+            /// Just remember this if something goes wrong while parsing the syntax!
+            token.hasFlag(Flag.UNARY) -> return UnaryOperation(token, token.type, parseElement(), true)
             token.hasFlag(Flag.NATIVE_CALL) -> {
                 expectType(OPEN_CURVE)
                 val arguments = parseArgs()

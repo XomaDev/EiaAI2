@@ -42,7 +42,7 @@ object AppInventorInterop {
     private fun mapComponents(): Map<String, Component> {
         val components = HashMap<String, Component>()
         form.javaClass.fields.forEach {
-            if (it.type == Component::class.java) {
+            if (Component::class.java.isAssignableFrom(it.type)) {
                 components[it.name] = it.get(form) as Component
             }
         }

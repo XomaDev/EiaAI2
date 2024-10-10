@@ -1,0 +1,117 @@
+let boolServer = false
+
+fun update(text: String) {
+  lblResult.Text(text + '\n' + lblResult.Text())
+}
+
+fun init() {
+  BluetoothServer1.AcceptConnection("")
+  update("init")
+}
+
+fun connected(isTrue: Bool) {
+  btnSend.Enabled(isTrue)
+  lipConnect.Enabled(!isTrue)
+  Clock1.TimerEnabled(isTrue)
+  btnDisconnect.Enabled(isTrue)
+}
+
+fun disconnect() {
+  update(txbNickname.Text() + " disconnected")
+  if (boolServer) {
+    BluetoothServer1.Disconnect()
+  } else {
+    BluetoothClient1.Disconnect()
+  }
+  connected(false)
+  init()
+}
+
+fun send(message: String) {
+  if (boolServer) {
+    BluetoothServer1.SendText(message)
+  } else {
+    BluetoothClient1.SendText(message)
+  }
+  update(message)
+}
+
+Screen1:PermissionGranted(permissionName: String) {
+  if (permissionName == "BLUETOOTH_CONNECT") {
+    Screen1.AskForPermission("BLUETOOTH_SCAN")
+  } else {
+    TinyDB1.StoreValue("permissionsGranted", true)
+  }
+}
+
+lipConnect:BeforePicking {
+  lipConnect.Elements(BluetoothClient1.AddressesAndNames())
+  if (!BluetoothClient1.Enabled()) {
+    Notifier1.ShowAlert("Please enable bluetooth\nin your Device Settings")
+  }
+}
+
+lipConnect:AfterPicking {
+  update("Trying to connect to " + lipConnect.Selection())
+  if (BluetoothServer1.IsAccepting()) {
+    BluetoothServer1.StopAccepting()
+  }
+  if (BluetoothClient1.Connect(lipConnect.Selection())) {
+    boolServer = false
+    Screen1.Title("Bluetooth Chat, Role=Client")
+    connected(true)
+    send(txbNickname.Text() + " connected")
+  } else {
+    init()
+  }
+}
+
+Clock1:Timer {
+  if (boolServer) {
+    if (BluetoothServer1.BytesAvailableToReceive() > 0) {
+      update(BluetoothServer1.ReceiveText(BluetoothServer1.BytesAvailableToReceive()))
+    }
+  } else {
+    if (BluetoothClient1.BytesAvailableToReceive() > 0) {
+      update(BluetoothClient1.ReceiveText(BluetoothClient1.BytesAvailableToReceive()))
+    }
+  }
+}
+
+BluetoothServer1:ConnectionAccepted {
+  update("Connection accepted")
+  boolServer = true
+  Screen1.Title("Bluetooth Chat, Role=Server")
+  connected(true)
+}
+
+btnSend:Click {
+  send(txbNickname.Text() + " said: " + txbMessage.Text())
+}
+
+btnExit:Click {
+  disconnect()
+  closeApp()
+}
+
+btnClear:Click {
+  lblResult.Text("")
+}
+
+btnDisconnect:Click {
+  disconnect()
+}
+
+Screen1:ErrorOccurred(component: Any, functionName: String, errorNumber: Int, message: String) {
+  update("Error " + errorNumber + " " + functionName + ": " + message)
+}
+
+Screen1.Title("Bluetooth Chat, Role=undefined")
+Clock1.TimerEnabled(false)
+txbNickname.Text("User_" + rand(1000, 9999))
+
+if (TinyDB1.GetValue("permissionsGranted", false)) {
+  init()
+} else {
+  Screen1.AskForPermission("BLUETOOTH_CONNECT")
+}
