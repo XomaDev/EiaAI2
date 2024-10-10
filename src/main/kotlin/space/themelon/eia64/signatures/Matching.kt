@@ -1,7 +1,6 @@
 package space.themelon.eia64.signatures
 
 import space.themelon.eia64.Expression
-import space.themelon.eia64.syntax.Token
 
 object Matching {
 

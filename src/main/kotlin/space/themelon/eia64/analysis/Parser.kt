@@ -639,7 +639,7 @@ class Parser(
         val where = next()
         val name = readAlpha(where)
 
-        val clazz = javaClassOf(left.sig(), where)
+        val clazz = left.sig().javaClass(where)
         if (consumeNext(OPEN_CURVE)) {
             // a method call!
             val args = parseArgs()
@@ -652,7 +652,10 @@ class Parser(
                         && it.parameterCount == args.size
                         && it.parameterTypes
                     .let { pTypes ->
-                        pTypes.indices.all { i -> matches(Signature.signFromJavaClass(pTypes[i]), argTypes[i]) }
+                        pTypes.indices.all { i ->
+                            pTypes[i].isAssignableFrom(argTypes[i].javaClass())
+                                    || matches(Signature.signFromJavaClass(pTypes[i]), argTypes[i])
+                        }
                     }
             } ?: where.error("Cannot find method '$name' on class $clazz")
             return JavaMethodCall(
@@ -672,23 +675,6 @@ class Parser(
             Signature.signFromJavaClass(field.type)
         )
     }
-
-    private fun javaClassOf(
-        signature: Signature,
-        where: Token
-    ): Class<*> = Class.forName(when (signature) {
-        Sign.NONE -> where.error("Signature NONE has no java module")
-        Sign.ANY -> where.error("Signature type ANY has no java module")
-        Sign.UNIT -> where.error("Signature type UNIT has no java module")
-        Sign.INT -> "java.lang.Integer"
-        Sign.FLOAT -> "java.lang.Float"
-        Sign.CHAR -> "java.lang.Character"
-        Sign.STRING -> "java.lang.String"
-        Sign.BOOL -> "java.lang.Boolean"
-        Sign.JAVA -> "java.lang.Object"
-        is JavaObjectSign -> signature.clazz.name
-        else -> where.error("Unknown signature type $signature")
-    })
 
     private fun operatorPrecedence(type: Flag) = when (type) {
         Flag.ASSIGNMENT_TYPE -> 1

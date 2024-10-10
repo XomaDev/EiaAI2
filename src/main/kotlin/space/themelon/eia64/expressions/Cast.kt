@@ -2,9 +2,7 @@ package space.themelon.eia64.expressions
 
 import space.themelon.eia64.Expression
 import space.themelon.eia64.signatures.*
-import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.syntax.Token
-import kotlin.math.exp
 
 data class Cast(
     val where: Token,

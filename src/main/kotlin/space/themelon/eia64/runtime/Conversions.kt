@@ -1,7 +1,6 @@
 package space.themelon.eia64.runtime
 
 import space.themelon.eia64.primitives.*
-import space.themelon.eia64.signatures.Sign
 
 object Conversions {
     fun Any.eiaToJava(): Any? {

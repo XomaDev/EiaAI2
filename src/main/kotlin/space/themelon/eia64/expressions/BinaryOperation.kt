@@ -1,7 +1,6 @@
 package space.themelon.eia64.expressions
 
 import space.themelon.eia64.Expression
-import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.signatures.Matching.numericOrChar
 import space.themelon.eia64.signatures.Sign
 import space.themelon.eia64.signatures.Signature
