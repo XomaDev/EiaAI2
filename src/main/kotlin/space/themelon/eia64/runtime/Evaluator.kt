@@ -132,7 +132,7 @@ class Evaluator(
         (memory.getVar(index, name) as Entity).update(value)
     }
 
-    // Do not delete, could be useful in future
+    // Do not delete it, could be useful in future
     @Suppress("unused")
     private fun update(aMemory: Memory, index: Int, name: String, value: Any) {
         (aMemory.getVar(index, name) as Entity).update(value)
@@ -440,20 +440,21 @@ class Evaluator(
             }
 
             OPEN_SCREEN -> {
-                val name = unboxEval(call.arguments[0]).toString()
-                // TODO
+                Form.switchForm(unboxEval(call.arguments[0]).toString())
                 return Nothing.INSTANCE
             }
 
             CLOSE_SCREEN -> {
-                // TODO
+                Form.finishActivity()
                 return Nothing.INSTANCE
             }
 
             CLOSE_APP -> {
-                // TODO
+                Form.finishApplication()
                 return Nothing.INSTANCE
             }
+
+            START_VALUE -> return Form.getStartText().javaToEia()
 
             else -> throw RuntimeException("Unknown native call operation: '$type'")
         }
