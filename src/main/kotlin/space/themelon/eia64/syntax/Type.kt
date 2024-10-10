@@ -49,10 +49,11 @@ enum class Type {
     MAKE_LIST, MAKE_DICT,
 
     CLOSE_SCREEN, CLOSE_APP,
-    OPEN_SCREEN,
-    START_VALUE,
+    OPEN_SCREEN, START_VALUE,
 
-    IMPORT, NEW,
+    GET, SEARCH,
+
+    KNOW, NEW,
 
     RETURN, BREAK, CONTINUE,
     ;
@@ -154,6 +155,9 @@ enum class Type {
                 it["makeList"] = StaticToken(MAKE_LIST)
                 it["makeDict"] = StaticToken(MAKE_DICT)
 
+                it["get"] = StaticToken(GET)
+                it["search"] = StaticToken(SEARCH)
+
                 it["time"] = StaticToken(TIME, arrayOf(Flag.NATIVE_CALL))
                 it["rand"] = StaticToken(RAND, arrayOf(Flag.NATIVE_CALL))
                 it["print"] = StaticToken(PRINT, arrayOf(Flag.NATIVE_CALL))
@@ -167,7 +171,7 @@ enum class Type {
                 it["openScreen"] = StaticToken(OPEN_SCREEN, arrayOf(Flag.NATIVE_CALL))
                 it["startValue"] = StaticToken(START_VALUE, arrayOf(Flag.NATIVE_CALL))
 
-                it["import"] = StaticToken(IMPORT)
+                it["know"] = StaticToken(KNOW)
 
                 it["new"] = StaticToken(NEW)
 

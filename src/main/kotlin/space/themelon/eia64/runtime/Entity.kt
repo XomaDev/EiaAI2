@@ -2,6 +2,7 @@ package space.themelon.eia64.runtime
 
 import space.themelon.eia64.Expression
 import space.themelon.eia64.primitives.*
+import space.themelon.eia64.signatures.ClassSign
 import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.signatures.Sign
 import space.themelon.eia64.signatures.Signature
@@ -43,13 +44,14 @@ open class Entity(
             is ENil -> Sign.NIL
             is EInt -> Sign.INT
             is EFloat -> Sign.FLOAT
+            is EDouble -> Sign.DOUBLE
             is EString -> Sign.STRING
             is EBool -> Sign.BOOL
             is EChar -> Sign.CHAR
             is EType -> Sign.TYPE
-            is EJava -> Sign.JAVA
+            is EJava -> ClassSign(value.get().javaClass)
             is Expression -> Sign.UNIT
-            else -> throw RuntimeException("Unknown type of value $value")
+            else -> Sign.JAVA
         }
     }
 }

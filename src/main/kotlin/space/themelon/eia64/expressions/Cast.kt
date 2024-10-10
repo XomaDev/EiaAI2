@@ -14,17 +14,6 @@ data class Cast(
     override fun <R> accept(v: Visitor<R>) = v.cast(this)
 
     override fun sig(): Signature {
-        val exprSign = expr.sig()
-        // Allow casting from Any to <T>
-        if (exprSign == Sign.ANY) return expectSignature
-        // TODO: check/add this condition at runtime
-        if (expectSignature == Sign.ANY) return Sign.ANY
-
-        if (exprSign == expectSignature) {
-            // they already are of the same type
-            return expectSignature
-        }
-        where.error<String>("Cannot cast $expr to $expectSignature")
-        throw RuntimeException()
+        return expectSignature
     }
 }

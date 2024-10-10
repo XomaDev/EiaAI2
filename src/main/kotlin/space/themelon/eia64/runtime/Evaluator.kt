@@ -83,8 +83,8 @@ class Evaluator(
 
     override fun alpha(alpha: Alpha) = memory.getVar(alpha.index, alpha.value)
 
-    override fun javaName(jName: JavaName) = executor.javaObjMap[jName.name]
-        ?: throw RuntimeException("Couldn't find Java Object '${jName.name}'")
+    override fun javaName(jName: JavaName) = executor.injectedObjects[jName.name]
+        ?: jName.where.error("Couldn't find Java Object '${jName.name}'")
 
     override fun struct(struct: Struct): EJava {
         return EJava(makeViewComponent(Form.getActiveForm(), struct), "Struct<${struct.name}>")
@@ -178,6 +178,7 @@ class Evaluator(
         is EString,
         is EChar,
         is EBool,
+        is EJava,
         is ENil,
         is EType -> left == right
 
@@ -471,6 +472,23 @@ class Evaluator(
         } else {
             EJava(YailDictionary.makeDictionary(value as Map<Any?, Any?>), "YailDictionary<>")
         }
+    }
+
+    override fun get(get: Get): EJava {
+        val name = unboxEval(get.name).toString()
+        return executor.injectedObjects[name] ?: get.where.error("Couldn't find Java Object '$name'")
+    }
+
+    override fun search(search: Search): Any {
+        val regex = Regex(unboxEval(search.name).toString())
+        val expectedName = unboxEval(search.type).toString()
+        val components = ArrayList<Any>()
+        executor.injectedObjects.entries.forEach { entry ->
+            if (entry.key.javaClass.simpleName == expectedName && entry.key.matches(regex)) {
+                components += entry.value
+            }
+        }
+        return components
     }
 
     override fun scope(scope: Scope): Any {

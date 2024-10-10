@@ -32,12 +32,14 @@ class Executor {
     private val externalParsers = HashMap<String, Parser>()
     private val mainParser = Parser(this)
 
-    val javaObjMap = HashMap<String, EJava>()
+    val injectedObjects = HashMap<String, EJava>()
     val knownJavaClasses = HashMap<String, Class<*>>()
 
     fun defineJavaObject(name: String, obj: Any) {
-        javaObjMap += name to EJava(obj, name)
+        injectedObjects += name to EJava(obj, name)
+
         knownJavaClasses += name to obj.javaClass
+        knownJavaClasses += obj.javaClass.simpleName to obj.javaClass
     }
 
     fun parse(source: String) = mainParser.parse(Lexer(source).tokens)

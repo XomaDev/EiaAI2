@@ -1,6 +1,2 @@
-let ages = makeDict(
-  "melon": 16,
-  "dennis": 24
-)
-
-print(ages)
+let btn = get("Cat1")::Cat
+print(btn)

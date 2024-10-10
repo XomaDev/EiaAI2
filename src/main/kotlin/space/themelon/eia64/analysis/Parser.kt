@@ -60,7 +60,7 @@ class Parser(
             IF -> ifDeclaration(token)
             FUN -> fnDeclaration()
             NEW -> newStatement(token)
-            IMPORT -> importStatement()
+            KNOW -> knowStatement()
             else -> {
                 back()
                 parseExpr(0)
@@ -80,7 +80,7 @@ class Parser(
         return when (token.type) {
             IF,
             FUN,
-            IMPORT,
+            KNOW,
             NEW -> true
             //WHEN -> true
             else -> false
@@ -116,17 +116,18 @@ class Parser(
         index = originalIndex
     }
 
-    private fun importStatement(): Expression {
-        val pkgNameParts = ArrayList<String>()
-        pkgNameParts += readAlpha()
-        while (consumeNext(DOT)) {
-            pkgNameParts += readAlpha()
-        }
-        val clazz = Class.forName(pkgNameParts.joinToString("."))
+    private fun knowStatement(): Expression {
+        val clazz = parsePkgName()
         executor.knownJavaClasses += clazz.simpleName to clazz
-
         // there's nothing to do at runtime
         return DiscardExpression()
+    }
+
+    private fun parsePkgName(): Class<*> {
+        val pkgNameParts = ArrayList<String>()
+        pkgNameParts += readAlpha()
+        while (consumeNext(DOT)) pkgNameParts += readAlpha()
+        return Class.forName(pkgNameParts.joinToString("."))
     }
 
     // this function was repurposed for making java instances
@@ -469,15 +470,7 @@ class Parser(
                 E_ANY -> Sign.ANY
                 E_UNIT -> Sign.UNIT
                 E_TYPE -> Sign.TYPE
-                E_JAVA -> {
-                    if (consumeNext(OPEN_CURVE)) {
-                        val name = readAlpha()
-                        expectType(CLOSE_CURVE)
-                        return ClassSign(Class.forName(name))
-                    } else {
-                        return Sign.JAVA
-                    }
-                }
+                E_JAVA -> Sign.JAVA
                 else -> token.error("Unknown class $classType")
             }
         }
@@ -486,6 +479,9 @@ class Parser(
             token.error<String>("Expected a class type")
             // end of execution
         }
+        val name = token.data as String
+        val knownClass = executor.knownJavaClasses[name]
+        if (knownClass != null) return ClassSign(knownClass)
         token.error<String>("Unknown class ${token.data}")
         throw RuntimeException()
     }
@@ -739,6 +735,7 @@ class Parser(
             }
             type == MAKE_LIST -> return makeList(token)
             type == MAKE_DICT -> return makeDict(token)
+            type == SEARCH -> return search(token)
             token.hasFlag(Flag.VALUE) -> return parseValue(token)
             token.hasFlag(Flag.UNARY) -> return UnaryOperation(token, token.type, parseTerm(), true)
             token.hasFlag(Flag.NATIVE_CALL) -> {
@@ -753,6 +750,28 @@ class Parser(
         return token.error("Unexpected token")
     }
 
+    private fun get(where: Token): Get {
+        expectType(OPEN_CURVE)
+        val name = parseStatement()
+        expectType(CLOSE_CURVE)
+        return Get(where, name)
+    }
+
+    private fun search(where: Token): Search {
+        expectType(OPEN_CURVE)
+        val regex = parseStatement()
+        val type = parseStatement()
+
+        val regexSig = regex.sig()
+        val typeSig = regex.sig()
+        if (regexSig != Sign.STRING || typeSig != Sign.STRING)
+            where.error<String>("Expected signature search(string, string) " +
+                    "but got search(${regexSig.logName()}, ${typeSig.logName()})")
+
+        expectType(CLOSE_CURVE)
+        return
+    }
+
     private fun makeList(where: Token): MakeList {
         expectType(OPEN_CURVE)
         val elements = parseArgs()
@@ -764,9 +783,9 @@ class Parser(
         val elements = ArrayList<Pair<Expression, Expression>>()
         expectType(OPEN_CURVE)
         while (!isEOF() && !isNext(CLOSE_CURVE)) {
-            val key = parseExpr(0)
+            val key = parseStatement()
             expectType(COLON)
-            val value = parseExpr(0)
+            val value = parseStatement()
             elements += key to value
             if (!consumeNext(COMMA)) break
         }
@@ -875,7 +894,7 @@ class Parser(
             // probably referencing a method from an outer class
                 Alpha(token, -2, name, Sign.NONE)
             else {
-                val envObj = executor.javaObjMap[name]
+                val envObj = executor.injectedObjects[name]
                 if (envObj != null) {
                     // jaa objects were injected :)
                     JavaName(token, name, false, ClassSign(executor.knownJavaClasses[name]!!))
