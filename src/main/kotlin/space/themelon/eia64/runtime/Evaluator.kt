@@ -313,10 +313,12 @@ class Evaluator(
     }
 
     override fun nativeCall(call: NativeCall): Any {
+        val args = call.args
+        val where = call.where
         when (val type = call.call) {
             PRINT -> {
                 var printCount = 0
-                call.arguments.forEach {
+                args.forEach {
                     var printable = unboxEval(it)
                     printable = if (printable is Array<*>) printable.contentDeepToString() else printable.toString()
 
@@ -328,20 +330,20 @@ class Evaluator(
             }
 
             PRINTF -> {
-                val string = unboxEval(call.arguments[0]).toString()
-                val args = call.arguments.map { unboxEval(it) }
+                val string = unboxEval(args[0]).toString()
+                val args = args.map { unboxEval(it) }
                 executor.standardOutput.print(String.format(string, *args.toTypedArray()))
                 return Nothing.INSTANCE
             }
 
             SLEEP -> {
-                Thread.sleep(intExpr(call.arguments[0]).get().toLong())
+                Thread.sleep(intExpr(args[0]).get().toLong())
                 return Nothing.INSTANCE
             }
 
             LEN -> {
                 return EInt(
-                    when (val data = unboxEval(call.arguments[0])) {
+                    when (val data = unboxEval(args[0])) {
                         is EString -> data.length
                         is ExpressionList -> data.size
                         is ENil -> 0
@@ -351,7 +353,7 @@ class Evaluator(
             }
 
             FORMAT -> {
-                val exprs = call.arguments
+                val exprs = args
                 val string = unboxEval(exprs[0])
                 if (getSignature(string) != Sign.STRING)
                     throw RuntimeException("format() requires a string argument")
@@ -368,7 +370,7 @@ class Evaluator(
             }
 
             INT_CAST -> {
-                val obj = unboxEval(call.arguments[0])
+                val obj = unboxEval(args[0])
 
                 return when (val objType = getSignature(obj)) {
                     Sign.INT -> obj
@@ -380,7 +382,7 @@ class Evaluator(
             }
 
             FLOAT_CAST -> {
-                val obj = unboxEval(call.arguments[0])
+                val obj = unboxEval(args[0])
 
                 return when (val objType = getSignature(obj)) {
                     Sign.INT -> (obj as EInt).get().toFloat()
@@ -392,7 +394,7 @@ class Evaluator(
             }
 
             CHAR_CAST -> {
-                val obj = unboxEval(call.arguments[0])
+                val obj = unboxEval(args[0])
                 return when (val objType = getSignature(obj)) {
                     Sign.CHAR -> objType
                     Sign.INT -> EChar((obj as EInt).get().toChar())
@@ -401,13 +403,13 @@ class Evaluator(
             }
 
             STRING_CAST -> {
-                val obj = unboxEval(call.arguments[0])
+                val obj = unboxEval(args[0])
                 if (getSignature(obj) == Sign.STRING) return obj
                 return EString(obj.toString())
             }
 
             BOOL_CAST -> {
-                val obj = unboxEval(call.arguments[0])
+                val obj = unboxEval(args[0])
                 if (getSignature(obj) == Sign.BOOL) return obj
                 return EBool(
                     when (obj) {
@@ -418,10 +420,10 @@ class Evaluator(
                 )
             }
 
-            TYPE_OF -> return EType(getSignature(unboxEval(call.arguments[0])))
+            TYPE_OF -> return EType(getSignature(unboxEval(args[0])))
 
             COPY -> {
-                val obj = unboxEval(call.arguments[0])
+                val obj = unboxEval(args[0])
                 if (obj !is Primitive<*> || !obj.isCopyable())
                     throw RuntimeException("Cannot apply copy() on object type ${getSignature(obj)} = $obj")
                 return obj.copy()!!
@@ -430,20 +432,20 @@ class Evaluator(
             TIME -> return EInt((System.currentTimeMillis() - startupTime).toInt())
 
             RAND -> {
-                val from = intExpr(call.arguments[0])
-                val to = intExpr(call.arguments[1])
+                val from = intExpr(args[0])
+                val to = intExpr(args[1])
                 return EInt(Random.nextInt(from.get(), to.get()))
             }
 
             // don't do a direct exitProcess(n), Eia could be running in a server
             // you don't need the entire server to shut down
             EXIT -> {
-                Executor.EIA_SHUTDOWN(intExpr(call.arguments[0]).get())
+                Executor.EIA_SHUTDOWN(intExpr(args[0]).get())
                 return EBool(true) // never reached (hopefully?)
             }
 
             OPEN_SCREEN -> {
-                Form.switchForm(unboxEval(call.arguments[0]).toString())
+                Form.switchForm(unboxEval(args[0]).toString())
                 return Nothing.INSTANCE
             }
 
@@ -458,6 +460,23 @@ class Evaluator(
             }
 
             START_VALUE -> return Form.getStartText().javaToEia()
+            
+            GET -> {
+                val name = unboxEval(args[0]).toString()
+                return executor.injectedObjects[name] ?: where.error("Couldn't find Java Object '$name'")
+            }
+
+            SEARCH -> {
+                val regex = Regex(unboxEval(args[0]).toString())
+                val expectedName = unboxEval(args[1]).toString()
+                val components = ArrayList<Any>()
+                executor.injectedObjects.entries.forEach { entry ->
+                    if (entry.key.javaClass.simpleName == expectedName && entry.key.matches(regex)) {
+                        components += entry.value
+                    }
+                }
+                return components
+            }
 
             else -> throw RuntimeException("Unknown native call operation: '$type'")
         }
@@ -472,23 +491,6 @@ class Evaluator(
         } else {
             EJava(YailDictionary.makeDictionary(value as Map<Any?, Any?>), "YailDictionary<>")
         }
-    }
-
-    override fun get(get: Get): EJava {
-        val name = unboxEval(get.name).toString()
-        return executor.injectedObjects[name] ?: get.where.error("Couldn't find Java Object '$name'")
-    }
-
-    override fun search(search: Search): Any {
-        val regex = Regex(unboxEval(search.name).toString())
-        val expectedName = unboxEval(search.type).toString()
-        val components = ArrayList<Any>()
-        executor.injectedObjects.entries.forEach { entry ->
-            if (entry.key.javaClass.simpleName == expectedName && entry.key.matches(regex)) {
-                components += entry.value
-            }
-        }
-        return components
     }
 
     override fun scope(scope: Scope): Any {

@@ -16,11 +16,11 @@ data class FunctionInfo(
 data class NativeCall(
     val where: Token,
     val call: Type,
-    val arguments: List<Expression>, // sig checked
+    val args: List<Expression>, // sig checked
 ) : Expression(where) {
 
     companion object {
-        private val OLD_FUNCTION_SIGNATURES = HashMap<Type, FunctionInfo>().apply {
+        private val FunctionSignatures = HashMap<Type, FunctionInfo>().apply {
             put(Type.PRINT, FunctionInfo(Sign.NONE, -1))
             put(Type.PRINTF, FunctionInfo(Sign.NONE, -1))
             put(Type.LEN, FunctionInfo(Sign.INT, 1, listOf("measurable" to Sign.ANY)))
@@ -44,25 +44,27 @@ data class NativeCall(
             put(Type.OPEN_SCREEN, FunctionInfo(Sign.NONE, 1, listOf("screenName" to Sign.INT)))
             put(Type.CLOSE_SCREEN, FunctionInfo(Sign.NONE, 0))
             put(Type.CLOSE_APP, FunctionInfo(Sign.NONE, 0))
-            put(Type.START_VALUE, FunctionInfo(Sign.NONE, 0))
+            put(Type.START_VALUE, FunctionInfo(Sign.STRING, 0))
+
+            put(Type.GET, FunctionInfo(Sign.JAVA, 1, listOf("name" to Sign.STRING)))
         }
     }
 
     override fun <R> accept(v: Visitor<R>) = v.nativeCall(this)
 
     override fun sig(): Signature {
-        arguments.forEach { it.sig() } // functions like println() have indefinite args
-        val functionInfo = OLD_FUNCTION_SIGNATURES[call] ?: where.error("Could not find native function type $call")
+        args.forEach { it.sig() } // functions like println() have indefinite args
+        val functionInfo = FunctionSignatures[call] ?: where.error("Could not find native function type $call")
         val expectedArgsSize = functionInfo.argsSize
-        val gotArgsSize = arguments.size
+        val gotArgsSize = args.size
         val callName = call.name
 
         if (expectedArgsSize != -1 && gotArgsSize != expectedArgsSize) {
             where.error<String>("Function $callName() expected $expectedArgsSize args but got $gotArgsSize")
         }
-        val returnSignature = functionInfo.returnSignature ?: return arguments[0].sig()
+        val returnSignature = functionInfo.returnSignature ?: return args[0].sig()
         val expectedSignatureIterator = functionInfo.argSignatures.iterator()
-        val argumentIterator = arguments.iterator()
+        val argumentIterator = args.iterator()
 
         while (expectedSignatureIterator.hasNext()) {
             val argInfo = expectedSignatureIterator.next()

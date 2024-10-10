@@ -48,9 +48,6 @@ abstract class Expression(
         fun eventRegistration(registration: EventRegistration): R
 
         fun yailConversion(yailConversion: YailConversion): R
-        fun get(get: Get): R
-        fun search(search: Search): R
-
         fun struct(struct: Struct): R
     }
 
