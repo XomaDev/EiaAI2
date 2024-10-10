@@ -2,6 +2,8 @@ package space.themelon.eia64.runtime
 
 import com.google.appinventor.components.runtime.AndroidViewComponent
 import com.google.appinventor.components.runtime.Form
+import com.google.appinventor.components.runtime.util.YailDictionary
+import com.google.appinventor.components.runtime.util.YailList
 import space.themelon.eia64.AppInventorInterop
 import space.themelon.eia64.Expression
 import space.themelon.eia64.expressions.*
@@ -457,6 +459,16 @@ class Evaluator(
             START_VALUE -> return Form.getStartText().javaToEia()
 
             else -> throw RuntimeException("Unknown native call operation: '$type'")
+        }
+    }
+
+    override fun yailConversion(yailConversion: YailConversion): Any {
+        val value = unboxEval(yailConversion.expression)
+        // expression signatures are already ensured at parse-time
+        return if (yailConversion.clazz == YailList::class.java) {
+            EJava(YailList.makeList(value as ArrayList<Any?>), "YailList<>")
+        } else {
+            EJava(YailDictionary.makeDictionary(value as Map<Any?, Any?>), "YailDictionary<>")
         }
     }
 

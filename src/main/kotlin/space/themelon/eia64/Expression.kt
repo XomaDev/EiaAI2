@@ -47,6 +47,8 @@ abstract class Expression(
         fun javaMethodCall(jCall: JavaMethodCall): R
         fun eventRegistration(registration: EventRegistration): R
 
+        fun yailConversion(yailConversion: YailConversion): R
+
         fun struct(struct: Struct): R
     }
 

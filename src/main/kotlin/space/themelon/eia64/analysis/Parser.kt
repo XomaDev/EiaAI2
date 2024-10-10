@@ -1,6 +1,8 @@
 package space.themelon.eia64.analysis
 
 import com.google.appinventor.components.runtime.ComponentContainer
+import com.google.appinventor.components.runtime.util.YailDictionary
+import com.google.appinventor.components.runtime.util.YailList
 import space.themelon.eia64.Expression
 import space.themelon.eia64.expressions.*
 import space.themelon.eia64.runtime.Executor
@@ -654,24 +656,31 @@ class Parser(
             expectType(CLOSE_CURVE)
 
             val argTypes = args.map { it.sig() }
+            var result: Method? = null
 
-            val method = clazz.methods.find {
-                it.name == name
-                        && it.parameterCount == args.size
-                        && it.parameterTypes
-                    .let { pTypes ->
-                        pTypes.indices.all { i ->
-                            pTypes[i].isAssignableFrom(argTypes[i].javaClass())
-                                    || matches(Signature.signFromJavaClass(pTypes[i]), argTypes[i])
-                        }
-                    }
-            } ?: where.error("Cannot find method '$name' on class $clazz")
+            val transformedArgs = arrayOfNulls<Expression>(args.size)
+
+            methodSearch@
+            for (method in clazz.methods) {
+                if (method.name != name || method.parameterCount != args.size) continue@methodSearch
+                val expectedTypes = method.parameterTypes
+                for (i in expectedTypes.indices) {
+                    val transformed = ensureParameterCompatibility(args[i], expectedTypes[i], argTypes[i])
+                        ?: continue@methodSearch
+                    transformedArgs[i] = transformed
+                }
+                // all checks were completed
+                result = method
+                break
+            }
+            if (result == null) where.error<String>("Cannot find method '$name' on class $clazz")
+            result!!
             return JavaMethodCall(
                 where,
                 left,
-                method,
+                result,
                 args,
-                Signature.signFromJavaClass(method.returnType)
+                Signature.signFromJavaClass(result.returnType)
             )
         }
         // Oh! It's field access
@@ -682,6 +691,26 @@ class Parser(
             field,
             Signature.signFromJavaClass(field.type)
         )
+    }
+
+    private fun ensureParameterCompatibility(value: Expression, expected: Class<*>, gotSign: Signature): Expression? {
+        // We need to ensure compatibility for both App Inventor and Java!
+        val got = gotSign.javaClass()
+        val expectedSign = Signature.signFromJavaClass(expected)
+
+        if (expected.isAssignableFrom(got)) return value
+        if (matches(expectedSign, gotSign)) return value
+
+        // we need to interfere and ensure manual interop
+        if (expected == YailList::class.java) {
+            if (value.sig() != Sign.LIST) return null
+            return YailConversion(YailList::class.java, value)
+        }
+        if (expected == YailDictionary::class.java) {
+            if (value.sig() != Sign.DICT) return null
+            return YailConversion(YailDictionary::class.java, value)
+        }
+        return null
     }
 
     private fun operatorPrecedence(type: Flag) = when (type) {
