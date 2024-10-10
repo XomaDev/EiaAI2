@@ -3,17 +3,14 @@
 package space.themelon.eia64
 
 import android.util.Log
-import com.google.appinventor.components.runtime.AndroidViewComponent
-import com.google.appinventor.components.runtime.Component
-import com.google.appinventor.components.runtime.EventDispatcher
-import com.google.appinventor.components.runtime.Form
-import gnu.mapping.Environment
-import gnu.mapping.ProcedureN
-import gnu.mapping.SimpleSymbol
-import gnu.mapping.Values
+import com.google.appinventor.components.runtime.*
+import gnu.lists.LList
+import gnu.mapping.*
+import kawa.standard.Scheme
 import space.themelon.eia64.expressions.Struct
 import space.themelon.eia64.runtime.Executor
 import space.themelon.eia64.runtime.Nothing
+import space.themelon.eia64.syntax.Token
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -102,6 +99,32 @@ object AppInventorInterop {
             }
         })
         EventDispatcher.registerEventForDelegation(form, component, event)
+    }
+
+    // internal use only
+    fun callProcedure(
+        where: Token,
+        name: String,
+        args: Array<Any?>
+    ): Any {
+        var procedure: ProcedureN? = null
+        if (form is ReplForm) {
+            procedure = Scheme
+                .getInstance()
+                .eval("(begin (require <com.google.youngandroid.runtime>)(get-var p$$name))") as ProcedureN
+        } else {
+            val vars = form.javaClass.getField("global\$Mnvars\$Mnto\$Mncreate")[form] as LList
+            for (pair in vars) {
+                if (LList.Empty == pair) continue
+                val asPair = pair as LList
+                if ((asPair[0] as Symbol).name == "p$$name") {
+                    procedure = (asPair[1] as ProcedureN).apply0() as ProcedureN
+                    break
+                }
+            }
+        }
+        if (procedure == null) where.error<String>("Could not find procedure '$name'")
+        return procedure!!.applyN(args)
     }
 
     fun execute(source: String): Array<Any> {

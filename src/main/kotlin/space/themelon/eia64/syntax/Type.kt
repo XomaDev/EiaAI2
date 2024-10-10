@@ -51,7 +51,7 @@ enum class Type {
     CLOSE_SCREEN, CLOSE_APP,
     OPEN_SCREEN, START_VALUE,
 
-    GET, SEARCH,
+    GET, SEARCH, PROCEDURE,
 
     KNOW, NEW,
 
@@ -155,8 +155,10 @@ enum class Type {
                 it["makeList"] = StaticToken(MAKE_LIST)
                 it["makeDict"] = StaticToken(MAKE_DICT)
 
-                it["get"] = StaticToken(GET)
-                it["search"] = StaticToken(SEARCH)
+                it["get"] = StaticToken(GET, arrayOf(Flag.NATIVE_CALL))
+                it["search"] = StaticToken(SEARCH, arrayOf(Flag.NATIVE_CALL))
+
+                it["procedure"] = StaticToken(PROCEDURE, arrayOf(Flag.NATIVE_CALL))
 
                 it["time"] = StaticToken(TIME, arrayOf(Flag.NATIVE_CALL))
                 it["rand"] = StaticToken(RAND, arrayOf(Flag.NATIVE_CALL))

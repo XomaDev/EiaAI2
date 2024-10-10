@@ -331,8 +331,7 @@ class Evaluator(
 
             PRINTF -> {
                 val string = unboxEval(args[0]).toString()
-                val args = args.map { unboxEval(it) }
-                executor.standardOutput.print(String.format(string, *args.toTypedArray()))
+                executor.standardOutput.print(String.format(string, *args.map { unboxEval(it) }.toTypedArray()))
                 return Nothing.INSTANCE
             }
 
@@ -353,15 +352,14 @@ class Evaluator(
             }
 
             FORMAT -> {
-                val exprs = args
-                val string = unboxEval(exprs[0])
+                val string = unboxEval(args[0])
                 if (getSignature(string) != Sign.STRING)
                     throw RuntimeException("format() requires a string argument")
                 string as EString
-                if (exprs.size > 1) {
-                    val values = arrayOfNulls<Any>(exprs.size - 1)
-                    for (i in 1 until exprs.size) {
-                        val value = unboxEval(exprs[i])
+                if (args.size > 1) {
+                    val values = arrayOfNulls<Any>(args.size - 1)
+                    for (i in 1 until args.size) {
+                        val value = unboxEval(args[i])
                         values[i - 1] = if (value is Primitive<*>) value.get() else value
                     }
                     return EString(String.format(string.get(), *values))
@@ -478,7 +476,14 @@ class Evaluator(
                 return components
             }
 
-            else -> throw RuntimeException("Unknown native call operation: '$type'")
+            PROCEDURE -> {
+                if (args.isEmpty()) where.error<String>("Expected minimum of 1 argument for procedure()")
+                val name = unboxEval(args[0]).toString()
+                val invokeArgs = args.subList(1, args.size).map { unboxEval(it).eiaToJava()}
+                return AppInventorInterop.callProcedure(where, name, invokeArgs.toTypedArray()).javaToEia()
+            }
+
+            else -> return where.error<String>("Unknown native call operation: '$type'")
         }
     }
 

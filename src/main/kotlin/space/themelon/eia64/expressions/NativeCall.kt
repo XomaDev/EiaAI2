@@ -47,6 +47,9 @@ data class NativeCall(
             put(Type.START_VALUE, FunctionInfo(Sign.STRING, 0))
 
             put(Type.GET, FunctionInfo(Sign.JAVA, 1, listOf("name" to Sign.STRING)))
+            put(Type.SEARCH, FunctionInfo(Sign.LIST, 2, listOf("match" to Sign.STRING, "type" to Sign.STRING)))
+
+            put(Type.PROCEDURE, FunctionInfo(Sign.ANY, -1))
         }
     }
 
