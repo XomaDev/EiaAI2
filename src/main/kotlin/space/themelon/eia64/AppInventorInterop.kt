@@ -25,23 +25,7 @@ object AppInventorInterop {
     private val stdout = ByteArrayOutputStream()
     private var executor: Executor? = null
 
-    fun init(extension: Any) {
-        val stdlib = form.openAssetForExtension(extension as Component, "stdlib.zip")
-        val destFolder = File(form.filesDir, "stdlib/")
-
-        // extract stdlb directory
-        destFolder.mkdirs()
-        ZipInputStream(stdlib).use {
-            var entry = it.nextEntry
-            while (entry != null) {
-                it.transferTo(FileOutputStream(File(destFolder, entry.name)))
-                it.closeEntry()
-                entry = it.nextEntry
-            }
-        }
-
-        Executor.STD_LIB = destFolder.absolutePath
-
+    fun init() {
         val executor = Executor().also { this.executor = it }
 
         executor.standardOutput = PrintStream(stdout)
@@ -106,7 +90,7 @@ object AppInventorInterop {
         where: Token,
         name: String,
         args: Array<Any?>
-    ): Any {
+    ): Any? {
         var procedure: ProcedureN? = null
         if (form is ReplForm) {
             procedure = Scheme

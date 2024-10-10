@@ -735,7 +735,6 @@ class Parser(
             }
             type == MAKE_LIST -> return makeList(token)
             type == MAKE_DICT -> return makeDict(token)
-            type == SEARCH -> return search(token)
             token.hasFlag(Flag.VALUE) -> return parseValue(token)
             token.hasFlag(Flag.UNARY) -> return UnaryOperation(token, token.type, parseTerm(), true)
             token.hasFlag(Flag.NATIVE_CALL) -> {
@@ -748,28 +747,6 @@ class Parser(
         back()
         if (canParseNext()) return parseStatement()
         return token.error("Unexpected token")
-    }
-
-    private fun get(where: Token): Get {
-        expectType(OPEN_CURVE)
-        val name = parseStatement()
-        expectType(CLOSE_CURVE)
-        return Get(where, name)
-    }
-
-    private fun search(where: Token): Search {
-        expectType(OPEN_CURVE)
-        val regex = parseStatement()
-        val type = parseStatement()
-
-        val regexSig = regex.sig()
-        val typeSig = regex.sig()
-        if (regexSig != Sign.STRING || typeSig != Sign.STRING)
-            where.error<String>("Expected signature search(string, string) " +
-                    "but got search(${regexSig.logName()}, ${typeSig.logName()})")
-
-        expectType(CLOSE_CURVE)
-        return
     }
 
     private fun makeList(where: Token): MakeList {

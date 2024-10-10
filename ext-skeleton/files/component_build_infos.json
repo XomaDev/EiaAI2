@@ -12,7 +12,7 @@
     ],
     "activityMetadata": [],
     "queries": [],
-    "assets": ["eia.jar", "stdlib.zip"],
+    "assets": ["eia.jar"],
     "native": [],
     "permissions": [],
     "activities": []

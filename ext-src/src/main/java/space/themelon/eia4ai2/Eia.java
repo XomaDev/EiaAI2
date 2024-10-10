@@ -62,7 +62,7 @@ public class Eia extends AndroidNonvisibleComponent implements OnInitializeListe
     Class<?> clazz = dexLoader.loadClass("space.themelon.eia64.AppInventorInterop");
     initInstance = clazz.getField("INSTANCE").get(null);
     Class<?> interopClazz = initInstance.getClass();
-    interopClazz.getMethod("init", Object.class).invoke(initInstance, this);
+    interopClazz.getMethod("init").invoke(initInstance);
 
     executeMethod = interopClazz.getMethod("execute", String.class);
     renderMethod = interopClazz.getMethod("render", AndroidViewComponent.class, String.class);
