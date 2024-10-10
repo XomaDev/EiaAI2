@@ -3,7 +3,6 @@ package space.themelon.eia64.runtime
 import space.themelon.eia64.Expression
 import space.themelon.eia64.primitives.*
 import space.themelon.eia64.signatures.Matching.matches
-import space.themelon.eia64.signatures.ObjectExtension
 import space.themelon.eia64.signatures.Sign
 import space.themelon.eia64.signatures.Signature
 
@@ -12,7 +11,7 @@ open class Entity(
     private val mutable: Boolean,
     var value: Any,
     val signature: Signature,
-    val interruption: InterruptionType = InterruptionType.NONE,
+    val interruption: FlowInterrupt = FlowInterrupt.NONE,
 ) {
 
     open fun update(another: Any) {
@@ -29,7 +28,7 @@ open class Entity(
         fun unbox(value: Any): Any {
             return if (value is Entity) {
                 // break that return boxing
-                if (value.interruption != InterruptionType.NONE) unbox(value.value)
+                if (value.interruption != FlowInterrupt.NONE) unbox(value.value)
                 else value.value
             } else value
         }
@@ -38,7 +37,7 @@ open class Entity(
             is Entity -> {
                 // repeatedly break that repeat unboxing
                 //  to retrieve the underlying value
-                if (value.interruption != InterruptionType.NONE) getSignature(value.value)
+                if (value.interruption != FlowInterrupt.NONE) getSignature(value.value)
                 else value.signature
             }
             is ENil -> Sign.NIL
@@ -50,7 +49,6 @@ open class Entity(
             is EType -> Sign.TYPE
             is EJava -> Sign.JAVA
             is Expression -> Sign.UNIT
-            is Evaluator -> ObjectExtension(value.className)
             else -> throw RuntimeException("Unknown type of value $value")
         }
     }

@@ -15,16 +15,9 @@ object Matching {
         if (expect == Sign.ANY) return got != Sign.NONE
         if (expect is SimpleSignature) return expect == got
 
-        if (expect is ObjectExtension) {
-            if (got !is ObjectExtension) return false
-            if (expect.extensionClass == Sign.ANY.type
-                || expect.extensionClass == Sign.OBJECT.type
-            ) return true
-            return expect.extensionClass == got.extensionClass
-        }
         // verify underlying classes are same
         if (expect is JavaObjectSign && got is JavaObjectSign)
-            return expect == got
+            return expect.clazz.isAssignableFrom(got.clazz)
         return false
     }
 }

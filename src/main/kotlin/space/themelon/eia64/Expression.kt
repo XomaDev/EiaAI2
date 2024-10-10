@@ -19,8 +19,6 @@ abstract class Expression(
         fun charLiteral(literal: CharLiteral): R
         fun typeLiteral(literal: TypeLiteral): R
         fun alpha(alpha: Alpha): R
-        fun throwExpr(throwExpr: ThrowExpr): R
-        fun tryCatch(tryCatch: TryCatch): R
         fun variable(variable: Variable): R
         fun isStatement(isStatement: IsStatement): R
         fun unaryOperation(expr: UnaryOperation): R
@@ -31,8 +29,6 @@ abstract class Expression(
         fun cast(cast: Cast): R
         fun scope(scope: Scope): R
         fun methodCall(call: MethodCall): R
-        fun classPropertyAccess(propertyAccess: ForeignField): R
-        fun classMethodCall(call: ClassMethodCall): R
         fun until(until: Until): R
         fun itr(itr: Itr): R
         fun whenExpr(whenExpr: When): R

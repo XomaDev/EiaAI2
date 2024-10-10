@@ -59,8 +59,6 @@ class Parser(
             FUN -> fnDeclaration()
             NEW -> newStatement(token)
             IMPORT -> importStatement()
-            THROW -> throwStatement(token)
-            TRY -> tryCatchStatement(token)
             else -> {
                 back()
                 parseExpr(0)
@@ -81,9 +79,7 @@ class Parser(
             IF,
             FUN,
             IMPORT,
-            NEW,
-            THROW,
-            TRY-> true
+            NEW -> true
             //WHEN -> true
             else -> false
         }
@@ -116,21 +112,6 @@ class Parser(
         }
 
         index = originalIndex
-    }
-
-    private fun throwStatement(token: Token) = ThrowExpr(token, parseStatement())
-
-    private fun tryCatchStatement(token: Token): TryCatch {
-        // try { ... } catch message { ... }
-        val tryBlock = autoBodyExpr()
-        expectType(CATCH)
-        val catchIdentifier = readAlpha()
-        manager.enterScope()
-        manager.defineVariable(catchIdentifier, Sign.STRING, false)
-        val catchBody = unscoppedBodyExpr()
-        manager.leaveScope()
-
-        return TryCatch(token, tryBlock, catchIdentifier, catchBody)
     }
 
     private fun importStatement(): Expression {
@@ -486,7 +467,6 @@ class Parser(
                 E_ANY -> Sign.ANY
                 E_UNIT -> Sign.UNIT
                 E_TYPE -> Sign.TYPE
-                E_OBJECT -> ObjectExtension(Sign.OBJECT.type) // Generic form
                 E_JAVA -> {
                     if (consumeNext(OPEN_CURVE)) {
                         val name = readAlpha()
@@ -503,11 +483,6 @@ class Parser(
         if (token.type != ALPHA) {
             token.error<String>("Expected a class type")
             // end of execution
-        }
-        if (manager.classes.contains(token.data as String)) {
-            // class that was included from external files
-            // this will be an extension of Object class type
-            return ObjectExtension(token.data)
         }
         token.error<String>("Unknown class ${token.data}")
         throw RuntimeException()
@@ -663,7 +638,6 @@ class Parser(
         skip() // a dot
         val where = next()
         val name = readAlpha(where)
-        println(name)
 
         val clazz = javaClassOf(left.sig(), where)
         if (consumeNext(OPEN_CURVE)) {
@@ -689,7 +663,7 @@ class Parser(
                 Signature.signFromJavaClass(method.returnType)
             )
         }
-        // Oh! It's a field access
+        // Oh! It's field access
         val field = clazz.fields.find { it.name == name } ?: where.error("Cannot find field '$name' in class $clazz")
         return JavaFieldAccess(
             where,
@@ -706,7 +680,6 @@ class Parser(
         Sign.NONE -> where.error("Signature NONE has no java module")
         Sign.ANY -> where.error("Signature type ANY has no java module")
         Sign.UNIT -> where.error("Signature type UNIT has no java module")
-        //Sign.OBJECT -> where.error("Signature type OBJECT has no java module") // (Raw Object sign)
         Sign.INT -> "java.lang.Integer"
         Sign.FLOAT -> "java.lang.Float"
         Sign.CHAR -> "java.lang.Character"
@@ -746,14 +719,7 @@ class Parser(
         }
         val token = next()
         when {
-            token.hasFlag(Flag.VALUE) -> {
-                val value = parseValue(token)
-                if (!token.hasFlag(Flag.CONSTANT_VALUE) // not a hard constant, like `123` or `"Hello, World"`
-                    && !isEOF()
-                    && peek().type == OPEN_CURVE)
-                    return unitCall(value)
-                return value
-            }
+            token.hasFlag(Flag.VALUE) -> return parseValue(token)
             token.hasFlag(Flag.UNARY) -> return UnaryOperation(token, token.type, parseTerm(), true)
             token.hasFlag(Flag.NATIVE_CALL) -> {
                 expectType(OPEN_CURVE)
@@ -893,12 +859,16 @@ class Parser(
     }
 
     private fun unitCall(unitExpr: Expression): Expression {
-        // TODO:
-        // In future we need to ensure unitExpr is alpha
+        if (unitExpr !is Alpha) {
+            val message = "Expected a function name for method call, bug got type ${unitExpr.sig()}"
+            unitExpr.marking?.error<String>(message)
+            // fallback message
+            throw RuntimeException(message)
+        }
         expectType(OPEN_CURVE)
         val arguments = parseArgs()
         expectType(CLOSE_CURVE)
-        val name = (unitExpr as Alpha).value
+        val name = unitExpr.value
         val fnExpr = manager.resolveFn(name, arguments.size)
         if (fnExpr != null) {
             if (fnExpr.argsSize == -1)

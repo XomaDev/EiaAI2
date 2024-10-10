@@ -43,14 +43,6 @@ class VoidEvaluator() : Expression.Visitor<Any> {
         throw ShutdownException()
     }
 
-    override fun throwExpr(throwExpr: ThrowExpr): Any {
-        throw ShutdownException()
-    }
-
-    override fun tryCatch(tryCatch: TryCatch): Any {
-        throw ShutdownException()
-    }
-
     override fun variable(variable: Variable): Any {
         throw ShutdownException()
     }
@@ -88,14 +80,6 @@ class VoidEvaluator() : Expression.Visitor<Any> {
     }
 
     override fun methodCall(call: MethodCall): Any {
-        throw ShutdownException()
-    }
-
-    override fun classPropertyAccess(propertyAccess: ForeignField): Any {
-        throw ShutdownException()
-    }
-
-    override fun classMethodCall(call: ClassMethodCall): Any {
         throw ShutdownException()
     }
 

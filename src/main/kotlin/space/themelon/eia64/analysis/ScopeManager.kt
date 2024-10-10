@@ -1,14 +1,10 @@
 package space.themelon.eia64.analysis
 
-import space.themelon.eia64.runtime.Executor
 import space.themelon.eia64.signatures.Sign
 import space.themelon.eia64.signatures.Signature
-import java.io.FileOutputStream
-import java.io.PrintStream
 
 class ScopeManager {
 
-    val classes = ArrayList<String>()
     val staticClasses = ArrayList<String>()
 
     // Helps us to know if `continue` and `break` statements
@@ -64,10 +60,6 @@ class ScopeManager {
         return imaginaryScope
     }
 
-    fun createHook(hook: () -> Unit) {
-        currentScope.scopeHooks += hook
-    }
-
     // Skeleton of the function that is defined by semi-parser
     fun defineSemiFn(name: String, reference: FunctionReference) {
         //println("Defining $name")
@@ -96,5 +88,4 @@ class ScopeManager {
     fun resolveFn(name: String, numArgs: Int) = currentScope.resolveFn(UniqueFunction(name, numArgs))
 
     fun resolveVr(name: String) = currentScope.resolveVr(name)
-    fun resolveGlobalVr(name: String) = currentScope.variables[name]
 }

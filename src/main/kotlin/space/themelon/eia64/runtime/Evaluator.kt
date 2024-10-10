@@ -196,7 +196,6 @@ class Evaluator(
             val value = unboxEval(expr.right)
             when (toUpdate) {
                 is Alpha -> update(toUpdate.index, toUpdate.value, value)
-                is ForeignField -> updateForeignField(toUpdate, value)
                 is JavaFieldAccess -> updateJavaField(toUpdate, value)
                 else -> throw RuntimeException("Unknown left operand for [= Assignment]: $toUpdate")
             }
@@ -217,17 +216,6 @@ class Evaluator(
     override fun isStatement(isStatement: IsStatement) =
         EBool(matches(isStatement.signature, getSignature(unboxEval(isStatement.expression))))
 
-    private fun updateForeignField(field: ForeignField, value: Any) {
-        val evaluator = getEvaluatorForField(field)
-        val uniqueVariable = field.uniqueVariable
-        update(
-            aMemory = evaluator.memory,
-            index = uniqueVariable.index,
-            name = field.property,
-            value = value
-        )
-    }
-
     override fun expressions(list: ExpressionList): Any {
         if (list.preserveState)
         // it is being stored somewhere, like in a variable, etc.
@@ -246,10 +234,10 @@ class Evaluator(
                 //else -> { }
                 //}
                 when (result.interruption) {
-                    InterruptionType.RETURN,
-                    InterruptionType.BREAK,
-                    InterruptionType.CONTINUE,
-                    InterruptionType.USE -> return result
+                    FlowInterrupt.RETURN,
+                    FlowInterrupt.BREAK,
+                    FlowInterrupt.CONTINUE,
+                    FlowInterrupt.USE -> return result
 
                     else -> {}
                 }
@@ -287,18 +275,7 @@ class Evaluator(
         val promisedSignature = cast.expectSignature
         val gotSignature = getSignature(result)
 
-        if (promisedSignature is ObjectExtension) {
-            val promisedClass = promisedSignature.extensionClass
-            if (result !is Evaluator) {
-                cast.where.error<String>("${getSignature(result)} cannot be cast into class $promisedClass")
-                throw RuntimeException()
-            }
-            val gotClass = result.className
-            if (promisedClass != gotClass) {
-                cast.where.error<String>("Class $gotClass cannot be cast into $promisedClass")
-                throw RuntimeException()
-            }
-        } else if (promisedSignature is JavaObjectSign) {
+        if (promisedSignature is JavaObjectSign) {
             if (gotSignature !is JavaObjectSign) {
                 cast.where.error<String>("Cannot cast $result to $promisedSignature")
                 throw RuntimeException()
@@ -448,24 +425,6 @@ class Evaluator(
         }
     }
 
-    override fun throwExpr(throwExpr: ThrowExpr): Any {
-        val message = throwExpr.where.prepareError(unboxEval(throwExpr.error).toString())
-        throw EiaRuntimeException(message)
-    }
-
-    override fun tryCatch(tryCatch: TryCatch): Any {
-        try {
-            return unboxEval(tryCatch.tryBlock)
-        } catch (e: EiaRuntimeException) {
-            // manual scope handling begins
-            memory.enterScope()
-            memory.declareVar(tryCatch.catchIdentifier, EString(e.message))
-            val result = unboxEval(tryCatch.catchBlock)
-            memory.leaveScope()
-            return result
-        }
-    }
-
     override fun scope(scope: Scope): Any {
         if (scope.imaginary) return eval(scope.expr)
         memory.enterScope()
@@ -529,74 +488,7 @@ class Evaluator(
     override fun javaFieldAccess(access: JavaFieldAccess) =
         access.field.get((unboxEval(access.jObject) as EJava).get()).javaToEia()
 
-    override fun classPropertyAccess(propertyAccess: ForeignField): Any {
-        val evaluator = getEvaluatorForField(propertyAccess)
-        val uniqueVariable = propertyAccess.uniqueVariable
-        return evaluator.memory.getVar(
-            uniqueVariable.index,
-            propertyAccess.property
-        )
-    }
-
-    // finds associated evaluator for a foreign field (gVariable)
-    // that is being accessed
-    private fun getEvaluatorForField(propertyAccess: ForeignField): Evaluator {
-        val property = propertyAccess.property
-        val moduleName = propertyAccess.moduleInfo.name
-
-        var evaluator: Evaluator? = null
-        if (propertyAccess.static) {
-            evaluator = executor.getEvaluator(moduleName)
-        } else {
-            when (val evaluatedObject = unboxEval(propertyAccess.objectExpression)) {
-                is Evaluator -> evaluator = evaluatedObject
-                is Primitive<*> -> executor.getEvaluator(moduleName)
-                else -> throw RuntimeException("Could not find property $property of object $evaluatedObject")
-            }
-        }
-        return evaluator ?: throw RuntimeException("Could not find module $moduleName")
-    }
-
     override fun methodCall(call: MethodCall) = fnInvoke(call.reference.fnExpression!!, evaluateArgs(call.arguments))
-
-    override fun classMethodCall(call: ClassMethodCall): Any {
-        val obj = call.objectExpression
-        val methodName = call.method
-        val args: Array<Any>
-
-        var evaluator: Evaluator? = null
-        // we may need to do a recursive alpha parse
-        if (call.static) {
-            // static invocation of an included class
-            args = evaluateArgs(call.arguments)
-        } else {
-            val evaluatedObj = unboxEval(obj)
-            call.arguments as ArrayList
-            args = when (evaluatedObj) {
-                is Primitive<*> -> {
-                    val evaluatedArgs = arrayOfNulls<Any>(call.arguments.size + 1)
-                    for ((index, expression) in call.arguments.withIndex())
-                        evaluatedArgs[index + 1] = unboxEval(expression)
-                    // NOTE: we never should directly modify the original expression list
-                    evaluatedArgs[0] = evaluatedObj
-                    @Suppress("UNCHECKED_CAST")
-                    evaluatedArgs as Array<Any>
-                    evaluatedArgs
-                }
-
-                is Evaluator -> {
-                    evaluator = evaluatedObj
-                    evaluateArgs(call.arguments)
-                }
-
-                else -> throw RuntimeException("Could not find method '$methodName' of object $evaluatedObj")
-            }
-        }
-        val moduleName = call.moduleInfo.name
-        val finalEvaluator = evaluator ?: executor.getEvaluator(moduleName)
-        ?: throw RuntimeException("Could not find module $moduleName")
-        return finalEvaluator.fnInvoke(call.reference.fnExpression!!, args)
-    }
 
     private fun evaluateArgs(args: List<Expression>): Array<Any> {
         val evaluatedArgs = arrayOfNulls<Any>(args.size)
@@ -669,10 +561,10 @@ class Evaluator(
             val result = eval(until.body)
             if (result is Entity) {
                 when (result.interruption) {
-                    InterruptionType.BREAK -> break
-                    InterruptionType.CONTINUE -> continue
-                    InterruptionType.RETURN -> return result
-                    InterruptionType.USE -> result.value
+                    FlowInterrupt.BREAK -> break
+                    FlowInterrupt.CONTINUE -> continue
+                    FlowInterrupt.RETURN -> return result
+                    FlowInterrupt.USE -> result.value
                     else -> {}
                 }
             }
@@ -710,10 +602,10 @@ class Evaluator(
             memory.leaveScope()
             if (result is Entity) {
                 when (result.interruption) {
-                    InterruptionType.BREAK -> break
-                    InterruptionType.CONTINUE -> continue
-                    InterruptionType.RETURN -> return result
-                    InterruptionType.USE -> result.value
+                    FlowInterrupt.BREAK -> break
+                    FlowInterrupt.CONTINUE -> continue
+                    FlowInterrupt.RETURN -> return result
+                    FlowInterrupt.USE -> result.value
                     else -> {}
                 }
             }
@@ -740,14 +632,14 @@ class Evaluator(
             memory.leaveScope()
             if (result is Entity) {
                 when (result.interruption) {
-                    InterruptionType.BREAK -> break
-                    InterruptionType.CONTINUE -> {
+                    FlowInterrupt.BREAK -> break
+                    FlowInterrupt.CONTINUE -> {
                         from = from + by
                         continue
                     }
 
-                    InterruptionType.RETURN -> return result
-                    InterruptionType.USE -> return result.value
+                    FlowInterrupt.RETURN -> return result
+                    FlowInterrupt.USE -> return result.value
                     else -> {}
                 }
             }
@@ -772,18 +664,18 @@ class Evaluator(
             // Scope -> Memory -> Array
             if (result is Entity) {
                 when (result.interruption) {
-                    InterruptionType.BREAK -> break
-                    InterruptionType.CONTINUE -> {
+                    FlowInterrupt.BREAK -> break
+                    FlowInterrupt.CONTINUE -> {
                         evalOperational()
                         continue
                     }
 
-                    InterruptionType.RETURN -> {
+                    FlowInterrupt.RETURN -> {
                         memory.leaveScope()
                         return result
                     }
 
-                    InterruptionType.USE -> {
+                    FlowInterrupt.USE -> {
                         memory.leaveScope()
                         return result.value
                     }
@@ -807,7 +699,7 @@ class Evaluator(
                 false,
                 expr,
                 Sign.NONE,
-                InterruptionType.RETURN
+                FlowInterrupt.RETURN
             )
         }
 
@@ -816,7 +708,7 @@ class Evaluator(
             false,
             unboxEval(interruption.expr!!),
             Sign.NONE,
-            InterruptionType.USE
+            FlowInterrupt.USE
         )
 
         BREAK -> Entity(
@@ -824,7 +716,7 @@ class Evaluator(
             false,
             0,
             Sign.NONE,
-            InterruptionType.BREAK
+            FlowInterrupt.BREAK
         )
 
         CONTINUE -> Entity(
@@ -832,7 +724,7 @@ class Evaluator(
             false,
             0,
             Sign.NONE,
-            InterruptionType.CONTINUE
+            FlowInterrupt.CONTINUE
         )
 
         else -> throw RuntimeException("Unknown interruption type $type")

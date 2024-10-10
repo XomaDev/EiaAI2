@@ -15,7 +15,6 @@ object Sign {
     private const val BOOL_SIGN = "sig_bool"
     private const val ARRAY_SIGN = "sig_array"
     private const val UNIT_SIGN = "sig_unit"
-    const val OBJECT_SIGN = "sig_object"
     private const val CLASS_SIGN = "sig_class"
     private const val JAVA_OBJECT = "sig_java"
 
@@ -32,7 +31,6 @@ object Sign {
     val BOOL = SimpleSignature(BOOL_SIGN)
     val ARRAY = SimpleSignature(ARRAY_SIGN)
     val UNIT = SimpleSignature(UNIT_SIGN)
-    val OBJECT = SimpleSignature(OBJECT_SIGN)
     val TYPE = SimpleSignature(CLASS_SIGN)
     val JAVA = SimpleSignature(JAVA_OBJECT)
 
@@ -47,11 +45,9 @@ object Sign {
             CHAR -> Type.E_CHAR
             BOOL -> Type.E_BOOL
             UNIT -> Type.E_UNIT
-            OBJECT -> Type.E_OBJECT
             TYPE -> Type.E_TYPE
             JAVA -> Type.E_JAVA
 
-            is ObjectExtension -> Type.E_OBJECT
             is JavaObjectSign -> Type.E_JAVA
             else -> throw RuntimeException("Unknown signature $this provided for translation into Type")
         }

@@ -30,7 +30,7 @@ enum class Type {
     IS,
 
     E_NIL,
-    E_NUMBER, E_INT, E_FLOAT, E_BOOL, E_STRING, E_CHAR, E_ANY, E_UNIT, E_OBJECT, E_TYPE, E_JAVA,
+    E_NUMBER, E_INT, E_FLOAT, E_BOOL, E_STRING, E_CHAR, E_ANY, E_UNIT, E_TYPE, E_JAVA,
 
     ALPHA,
     E_TRUE, E_FALSE, CLASS_VALUE,
@@ -46,7 +46,6 @@ enum class Type {
     FUN,
     COPY, TIME, RAND, PRINT, PRINTF, LEN, SLEEP, FORMAT, EXIT,
     IMPORT, NEW,
-    THROW, TRY, CATCH,
 
     RETURN, BREAK, CONTINUE,
     ;
@@ -126,7 +125,6 @@ enum class Type {
                 it["Char"] = StaticToken(E_CHAR, arrayOf(Flag.CLASS))
                 it["Any"] = StaticToken(E_ANY, arrayOf(Flag.CLASS))
                 it["Unit"] = StaticToken(E_UNIT, arrayOf(Flag.CLASS))
-                it["Object"] = StaticToken(E_OBJECT, arrayOf(Flag.CLASS))
                 it["Type"] = StaticToken(E_TYPE, arrayOf(Flag.CLASS))
                 it["Java"] = StaticToken(E_JAVA, arrayOf(Flag.CLASS))
 
@@ -157,9 +155,6 @@ enum class Type {
                 it["import"] = StaticToken(IMPORT)
 
                 it["new"] = StaticToken(NEW)
-                it["throw"] = StaticToken(THROW)
-                it["try"] = StaticToken(TRY)
-                it["catch"] = StaticToken(CATCH)
 
                 it["until"] = StaticToken(UNTIL, arrayOf(Flag.LOOP)) // auto scope
                 it["each"] = StaticToken(EACH, arrayOf(Flag.LOOP)) // TODO check this later
