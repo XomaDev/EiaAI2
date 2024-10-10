@@ -85,10 +85,10 @@ public class Eia extends AndroidNonvisibleComponent implements OnInitializeListe
   }
 
   @SimpleFunction
-  public String Run(String code) throws ReflectiveOperationException {
+  public Object Run(String code) throws ReflectiveOperationException {
     Object[] values = (Object[]) executeMethod.invoke(initInstance, code);
     Print(new String((byte[]) values[1]));
-    return values[0].toString();
+    return values[0];
   }
 
   @SimpleFunction

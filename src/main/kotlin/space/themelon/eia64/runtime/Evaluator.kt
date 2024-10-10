@@ -469,11 +469,11 @@ class Evaluator(
                 val expectedName = unboxEval(args[1]).toString()
                 val components = ArrayList<Any>()
                 executor.injectedObjects.entries.forEach { entry ->
-                    if (entry.key.javaClass.simpleName == expectedName && entry.key.matches(regex)) {
+                    if (entry.key.matches(regex) && entry.value.get().javaClass.simpleName == expectedName) {
                         components += entry.value
                     }
                 }
-                return components
+                return EJava(components, "SearchArrayList<>")
             }
 
             PROCEDURE -> {

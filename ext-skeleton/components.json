@@ -30,7 +30,7 @@
             "type": "text"
           }
         ],
-        "returnType": "text"
+        "returnType": "any"
       }
     ],
     "blockProperties": [],

@@ -8,6 +8,7 @@ import gnu.lists.LList
 import gnu.mapping.*
 import kawa.standard.Scheme
 import space.themelon.eia64.expressions.Struct
+import space.themelon.eia64.runtime.Conversions.eiaToJava
 import space.themelon.eia64.runtime.Executor
 import space.themelon.eia64.runtime.Nothing
 import space.themelon.eia64.syntax.Token
@@ -114,7 +115,7 @@ object AppInventorInterop {
     fun execute(source: String): Array<Any> {
         val bytes = stdout.toByteArray()
         val parsed = executor?.parse(source)
-        val evaluated = parsed?.let { executor?.evaluate(it) } ?: Nothing.INSTANCE
+        val evaluated = parsed?.let { executor?.evaluate(it)?.eiaToJava() } ?: Nothing.INSTANCE
         return arrayOf(evaluated, bytes)
     }
 
