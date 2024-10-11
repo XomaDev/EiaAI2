@@ -36,7 +36,7 @@ object AppInventorInterop {
             Log.d("Eia", "Defining ${it.key} = ${it.value}")
             executor.defineJavaObject(it.key, it.value)
         }
-        executor.defineJavaObject("form", form)
+        executor.defineJavaObject("screen", form)
     }
 
     private fun mapComponents(): Map<String, Component> {

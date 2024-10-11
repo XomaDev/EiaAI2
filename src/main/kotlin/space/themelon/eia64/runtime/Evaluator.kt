@@ -558,8 +558,14 @@ class Evaluator(
         return result.javaToEia()
     }
 
-    override fun javaFieldAccess(access: JavaFieldAccess) =
-        access.field.get((unboxEval(access.jObject) as EJava).get()).javaToEia()
+    override fun javaFieldAccess(access: JavaFieldAccess): Primitive<*> {
+        val field = access.field
+        return if (Modifier.isStatic(field.modifiers)) {
+            field.get(null).javaToEia()
+        } else {
+            field.get((unboxEval(access.jObject) as EJava).get()).javaToEia()
+        }
+    }
 
     override fun methodCall(call: MethodCall) = fnInvoke(call.reference.fnExpression!!, evaluateArgs(call.arguments))
 

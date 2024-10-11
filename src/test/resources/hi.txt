@@ -1,1 +1,4 @@
-print(!Cat1.IsMeow())
+know android.widget.Toast
+
+
+Toast.makeText(1,"meow", Toast.LONG)
