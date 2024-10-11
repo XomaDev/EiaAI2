@@ -90,9 +90,9 @@ class Evaluator(
 
     override fun struct(struct: Struct): EJava {
         val parent = struct.parent?.let { unboxEval(it).eiaToJava() } ?: Form.getActiveForm()
-        val component = makeViewComponent(Form.getActiveForm(), struct)
+        val component = makeViewComponent(parent, struct)
         component.view.parent?.let { if (it is ViewGroup) it.removeView(component.view) }
-        return EJava(parent, "Struct<${struct.name}>")
+        return EJava(component, "Struct<${struct.name}>")
     }
 
     private fun makeViewComponent(
