@@ -182,7 +182,7 @@ class Lexer(private val source: String) {
     }
 
     private fun isNumeric(c: Char) = c in '0'..'9'
-    private fun isAlpha(c: Char) = (c in 'a'..'z' || c in 'A'..'Z') || c == '_'
+    private fun isAlpha(c: Char) = (c in 'a'..'z' || c in 'A'..'Z') || c == '_' || c == '$'
 
     private fun reportError(message: String) {
         throw RuntimeException("[line $line] $message")

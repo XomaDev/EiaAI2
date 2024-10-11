@@ -1,7 +1,9 @@
 package space.themelon.eia64.runtime
 
+import android.view.ViewGroup
 import com.google.appinventor.components.runtime.AndroidViewComponent
 import com.google.appinventor.components.runtime.Form
+import com.google.appinventor.components.runtime.LinearLayout
 import com.google.appinventor.components.runtime.util.YailDictionary
 import com.google.appinventor.components.runtime.util.YailList
 import space.themelon.eia64.AppInventorInterop
@@ -16,7 +18,6 @@ import space.themelon.eia64.runtime.Entity.Companion.unbox
 import space.themelon.eia64.signatures.*
 import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.syntax.Type.*
-import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.util.HashMap
 import kotlin.collections.ArrayList
@@ -88,7 +89,10 @@ class Evaluator(
         ?: jName.where.error("Couldn't find Java Object '${jName.name}'")
 
     override fun struct(struct: Struct): EJava {
-        return EJava(makeViewComponent(Form.getActiveForm(), struct), "Struct<${struct.name}>")
+        val parent = struct.parent?.let { unboxEval(it).eiaToJava() } ?: Form.getActiveForm()
+        val component = makeViewComponent(Form.getActiveForm(), struct)
+        component.view.parent?.let { if (it is ViewGroup) it.removeView(component.view) }
+        return EJava(parent, "Struct<${struct.name}>")
     }
 
     private fun makeViewComponent(
@@ -300,7 +304,7 @@ class Evaluator(
                 cast.where.error<String>("Cannot cast $result to $promisedSignature")
                 throw RuntimeException()
             }
-            if (promisedSignature != gotSignature) {
+            if (!promisedSignature.clazz.isAssignableFrom(gotSignature.clazz)) {
                 cast.where.error<String>("Expected class ${promisedSignature.clazz} but got ${gotSignature.clazz}")
                 throw RuntimeException()
             }
