@@ -113,10 +113,23 @@ object AppInventorInterop {
     }
 
     fun execute(source: String): Array<Any> {
-        val bytes = stdout.toByteArray()
-        val parsed = executor?.parse(source)
-        val evaluated = parsed?.let { executor?.evaluate(it)?.eiaToJava() } ?: Nothing.INSTANCE
-        return arrayOf(evaluated, bytes)
+        try {
+            val bytes = stdout.toByteArray()
+            val parsed = executor?.parse(source)
+            val evaluated = parsed?.let { executor?.evaluate(it)?.eiaToJava() } ?: Nothing.INSTANCE
+            return arrayOf(true, evaluated, bytes)
+        } catch (t: Throwable) {
+            // we have to throw him on non-dex space
+            return arrayOf(false, t)
+        }
+    }
+
+    fun clearMemorySpace() {
+        executor?.clearMemory()
+    }
+
+    fun defineEnv(name: String, value: Any) {
+        executor?.defineJavaObject(name, value)
     }
 
     fun render(

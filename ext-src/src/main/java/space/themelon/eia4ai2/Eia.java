@@ -1,14 +1,10 @@
 package space.themelon.eia4ai2;
 
 import android.util.Log;
-import android.widget.Toast;
-import com.google.appinventor.components.annotations.DesignerComponent;
-import com.google.appinventor.components.annotations.SimpleEvent;
-import com.google.appinventor.components.annotations.SimpleFunction;
-import com.google.appinventor.components.annotations.SimpleObject;
+import com.google.appinventor.components.annotations.*;
 import com.google.appinventor.components.common.ComponentCategory;
+import com.google.appinventor.components.common.PropertyTypeConstants;
 import com.google.appinventor.components.runtime.AndroidNonvisibleComponent;
-import com.google.appinventor.components.runtime.AndroidViewComponent;
 import com.google.appinventor.components.runtime.EventDispatcher;
 import com.google.appinventor.components.runtime.Form;
 import com.google.appinventor.components.runtime.util.OnInitializeListener;
@@ -18,11 +14,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 // Annotations aren't necessary at all since we use a custom build system.
-// But for sake of classic-ness, we still use them
+// But for the sake of classic-ness, we still use them
 @DesignerComponent(
     category = ComponentCategory.EXTENSION,
     version = 1,
@@ -31,11 +26,15 @@ import java.lang.reflect.Method;
 @SimpleObject(external = true)
 public class Eia extends AndroidNonvisibleComponent implements OnInitializeListener {
 
+  private boolean resetEverytime = true;
+
   private final File eiaDexFile;
 
   private Object initInstance;
   private Method executeMethod;
-  private Method renderMethod;
+  private Method defineEnvMethod;
+  private Method clearMemorySpaceMethod;
+  //private Method renderMethod;
 
   public Eia(Form form) throws IOException {
     super(form);
@@ -69,7 +68,9 @@ public class Eia extends AndroidNonvisibleComponent implements OnInitializeListe
     interopClazz.getMethod("init").invoke(initInstance);
 
     executeMethod = interopClazz.getMethod("execute", String.class);
-    renderMethod = interopClazz.getMethod("render", AndroidViewComponent.class, String.class);
+    defineEnvMethod = interopClazz.getMethod("defineEnv", String.class, Object.class);
+    clearMemorySpaceMethod = interopClazz.getMethod("clearMemorySpace");
+    //renderMethod = interopClazz.getMethod("render", AndroidViewComponent.class, String.class);
   }
 
   private void copyEiaDex() throws IOException {
@@ -88,17 +89,36 @@ public class Eia extends AndroidNonvisibleComponent implements OnInitializeListe
     in.close();
   }
 
+  @DesignerProperty(
+      editorType = PropertyTypeConstants.PROPERTY_TYPE_BOOLEAN,
+      defaultValue = "True")
+  @SimpleProperty
+  public void ResetEverytime(boolean reset) {
+    resetEverytime = reset;
+  }
 
-  @SimpleFunction
-  public Object Run(String code) throws ReflectiveOperationException {
-    Object[] values = (Object[]) executeMethod.invoke(initInstance, code);
-    Print(new String((byte[]) values[1]));
-    return values[0];
+  @SimpleProperty
+  public boolean ResetEverytime() {
+    return resetEverytime;
   }
 
   @SimpleFunction
-  public void Render(AndroidViewComponent in, String struct) throws ReflectiveOperationException {
-    renderMethod.invoke(initInstance, in, struct);
+  public Object Run(String code) throws Throwable {
+    if (resetEverytime) {
+      // reset all the environment
+      clearMemorySpaceMethod.invoke(initInstance);
+    }
+    Object[] values = (Object[]) executeMethod.invoke(initInstance, code);
+    if ((Boolean) values[0]) {
+      Print(new String((byte[]) values[2]));
+      return values[1];
+    }
+    throw (Throwable) values[1];
+  }
+
+  @SimpleFunction
+  public void Define(String name, Object value) throws ReflectiveOperationException {
+    defineEnvMethod.invoke(initInstance, name, value);
   }
 
   @SimpleEvent

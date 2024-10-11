@@ -6,16 +6,16 @@
   "methods": [
     {
       "deprecated": "false",
-      "name": "Render",
-      "description": "Method for Render",
+      "name": "Define",
+      "description": "Method for Define",
       "params": [
         {
-          "name": "in",
-          "type": "component"
+          "name": "name",
+          "type": "text"
         },
         {
-          "name": "struct",
-          "type": "text"
+          "name": "value",
+          "type": "any"
         }
       ]
     },
@@ -32,7 +32,14 @@
       "returnType": "any"
     }
   ],
-  "blockProperties": [],
+  "blockProperties": [{
+    "rw": "read-write",
+    "deprecated": "false",
+    "name": "ResetEverytime",
+    "description": "Clear memory space every new execution",
+    "type": "boolean",
+    "category": "Unspecified"
+  }],
   "helpUrl": "",
   "licenseName": "",
   "type": "space.themelon.eia4ai2.Eia",
@@ -43,7 +50,12 @@
   "assets": ["eia.jar"],
   "name": "Eia",
   "helpString": "Component for Eia",
-  "properties": [],
+  "properties": [{
+    "defaultValue": "True",
+    "name": "ResetEverytime",
+    "editorArgs": [],
+    "editorType": "boolean"
+  }],
   "events": [
     {
       "deprecated": "false",

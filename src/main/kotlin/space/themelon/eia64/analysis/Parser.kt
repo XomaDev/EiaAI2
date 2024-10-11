@@ -22,13 +22,17 @@ class Parser(
         val COMPONENTS_PACKAGE = "com.google.appinventor.components.runtime."
     }
 
-    private val manager = ScopeManager()
+    private var manager = ScopeManager()
 
     private lateinit var tokens: List<Token>
     private var index = 0
     private var size = 0
 
     lateinit var parsed: ExpressionList
+
+    fun reset() {
+        manager = ScopeManager()
+    }
 
     fun parse(tokens: List<Token>): ExpressionList? {
         index = 0
