@@ -9,6 +9,7 @@ import java.lang.reflect.Method
 
 data class Struct(
     val identifier: String, // a custom identifier, such as `Button1`
+    val parent: Expression?,
     val name: String, // name of the component, `Button`
     val constructor: Constructor<*>,
     val props: List<Pair<Method, Expression>>,

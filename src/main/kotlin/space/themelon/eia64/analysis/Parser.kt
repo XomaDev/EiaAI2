@@ -821,6 +821,12 @@ class Parser(
         val events = HashMap<String, Pair<List<Pair<String, Signature>>, Expression>>()
         val children = ArrayList<Struct>()
 
+        var parent: Expression? = null
+        if (consumeNext(OPEN_CURVE)) {
+            parent = parseStatement()
+            expectType(CLOSE_CURVE)
+        }
+
         val identifier = if (isNext(ALPHA)) readAlpha() else clazz.simpleName + System.currentTimeMillis()
 
         expectType(OPEN_CURLY)
@@ -853,6 +859,7 @@ class Parser(
 
         return Struct(
             identifier,
+            parent,
             name,
             constructor,
             props,

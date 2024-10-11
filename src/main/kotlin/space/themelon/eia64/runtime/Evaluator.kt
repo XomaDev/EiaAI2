@@ -16,6 +16,7 @@ import space.themelon.eia64.runtime.Entity.Companion.unbox
 import space.themelon.eia64.signatures.*
 import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.syntax.Type.*
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.util.HashMap
 import kotlin.collections.ArrayList

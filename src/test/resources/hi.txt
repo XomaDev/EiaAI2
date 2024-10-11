@@ -1,4 +1,1 @@
-know android.widget.Toast
-
-
-Toast.makeText(1,"meow", Toast.LONG)
+get("Cat1").meow("a")
