@@ -7,7 +7,7 @@ import space.themelon.eia64.syntax.Token
 data class IntLiteral(
     val where: Token,
     val value: Int
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.intLiteral(this)
 

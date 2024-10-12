@@ -3,11 +3,8 @@ package space.themelon.eia64
 import space.themelon.eia64.expressions.*
 import space.themelon.eia64.expressions.FunctionExpr
 import space.themelon.eia64.signatures.Signature
-import space.themelon.eia64.syntax.Token
 
-abstract class Expression(
-    val marking: Token? = null,
-) {
+abstract class Expression {
 
     interface Visitor<R> {
         fun noneExpression(): R

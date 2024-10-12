@@ -1,1 +1,34 @@
-get("Cat1").meow("a")
+know android.graphics.Bitmap
+know android.graphics.BitmapFactory
+know android.graphics.BlurMaskFilter
+know android.graphics.Canvas
+know android.graphics.Paint
+know android.graphics.drawable.BitmapDrawable
+know android.view.View
+know android.view.ViewGroup
+know java.lang.reflect.Array
+know java.lang.Integer
+
+fun blur(top_a: Any, root_a: Any, radius: Int) {
+  let view = top_a::View
+  let root = root_a::ViewGroup
+  root.setDrawingCacheEnabled(true)
+  let rootBitmap = Bitmap.createBitmap(root.getDrawingCache())
+  root.setDrawingCacheEnabled(false)
+  
+  let location = Array.newInstance(Integer.type, 2)
+  view.getLocationInWindow(location)
+  let x = Array.get(location, 0)
+  let y = Array.get(location, 1)
+  
+  let croppedBitmap = Bitmap.createBitmap(rootBitmap, x, y, view.getWidth(), view.getHeight())
+  let scaledBitmap = Bitmap.createScaledBitmap(croppedBitmap, croppedBitmap.getWidth() / 4, croppedBitmap.getHeight() / 4, false)
+  
+  Bitmap outputBitmap = Bitmap.createBitmap(scaledBitmap)
+  Canvas canvas = new Canvas(outputBitmap)
+  Paint paint = new Paint()
+  paint.setMaskFilter(new BlurMaskFilter(radius, BlurMaskFilter.Blur.NORMAL))
+  canvas.drawBitmap(scaledBitmap, 0, 0, paint)
+  
+  view.setBackground(new BitmapDrawable(view.getResources(), outputBitmap))
+}

@@ -11,7 +11,7 @@ data class EventRegistration(
     val eventName: String,
     val args: List<Pair<String, Signature>>,
     val body: Expression,
-): Expression(where) {
+): Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.eventRegistration(this)
 

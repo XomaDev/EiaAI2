@@ -3,7 +3,6 @@ package space.themelon.eia64.runtime
 import android.view.ViewGroup
 import com.google.appinventor.components.runtime.AndroidViewComponent
 import com.google.appinventor.components.runtime.Form
-import com.google.appinventor.components.runtime.LinearLayout
 import com.google.appinventor.components.runtime.util.YailDictionary
 import com.google.appinventor.components.runtime.util.YailList
 import space.themelon.eia64.AppInventorInterop
@@ -147,7 +146,7 @@ class Evaluator(
 
     override fun variable(variable: Variable): Any {
         val name = variable.name
-        val value = unboxEval(variable.expr)
+        val value = unboxEval(variable.value)
         memory.declareVar(name, Entity(name, true, value, variable.sig()))
         return value
     }
@@ -827,7 +826,9 @@ class Evaluator(
         val conditionSuccess = booleanExpr(ifExpr.condition).get()
         // Here it would be best if we could add a fallback NONE value that
         // would prevent us from doing a lot of if checks at runtime
-        return eval(if (conditionSuccess) ifExpr.thenBody else ifExpr.elseBody)
+        // TODO:
+        // ERROOOOOOOOOOOOO
+        return eval(if (conditionSuccess) ifExpr.thenBody else ifExpr.elseBody!!)
     }
 
     override fun function(function: FunctionExpr): Any {

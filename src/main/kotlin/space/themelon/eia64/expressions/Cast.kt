@@ -8,7 +8,7 @@ data class Cast(
     val where: Token,
     val expr: Expression,
     val expectSignature: Signature
-) : Expression(where) {
+) : Expression() {
 
     // we actually do require evaluating this node at runtime
     override fun <R> accept(v: Visitor<R>) = v.cast(this)

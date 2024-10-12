@@ -11,7 +11,7 @@ class NewInstance(
     val packageName: String,
     val constructor: Constructor<*>,
     val arguments: List<Expression>,
-): Expression(where) {
+): Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.newJava(this)
 

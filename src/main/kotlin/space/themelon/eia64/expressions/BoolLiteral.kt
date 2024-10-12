@@ -7,7 +7,7 @@ import space.themelon.eia64.syntax.Token
 data class BoolLiteral(
     val where: Token,
     val value: Boolean
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.boolLiteral(this)
 

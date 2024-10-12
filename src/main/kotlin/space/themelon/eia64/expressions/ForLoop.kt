@@ -11,7 +11,7 @@ data class ForLoop(
     val conditional: Expression?, // sig checked
     val operational: Expression?, // sig checked
     val body: Expression,
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.forLoop(this)
 

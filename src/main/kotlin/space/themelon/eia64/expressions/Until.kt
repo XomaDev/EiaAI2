@@ -9,7 +9,7 @@ data class Until(
     val where: Token,
     val expression: Expression, // sig checked
     val body: Expression, // sig checked
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.until(this)
 

@@ -7,7 +7,7 @@ import space.themelon.eia64.syntax.Token
 data class CharLiteral(
     val where: Token,
     val value: Char
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.charLiteral(this)
 

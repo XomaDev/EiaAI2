@@ -10,7 +10,7 @@ data class JavaFieldAccess(
     val jObject: Expression,
     val field: Field,
     val fieldSignature: Signature
-): Expression(where) {
+): Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.javaFieldAccess(this)
 

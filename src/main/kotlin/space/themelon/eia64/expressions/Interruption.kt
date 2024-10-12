@@ -10,7 +10,7 @@ data class Interruption(
     val where: Token,
     val operator: Type,
     val expr: Expression? = null // sig checked
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.interruption(this)
 

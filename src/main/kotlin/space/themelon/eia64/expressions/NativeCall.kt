@@ -17,7 +17,7 @@ data class NativeCall(
     val where: Token,
     val call: Type,
     val args: List<Expression>, // sig checked
-) : Expression(where) {
+) : Expression() {
 
     companion object {
         private val FunctionSignatures = HashMap<Type, FunctionInfo>().apply {

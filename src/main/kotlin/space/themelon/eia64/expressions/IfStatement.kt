@@ -9,8 +9,8 @@ data class IfStatement(
     val where: Token,
     val condition: Expression, // sig checked
     val thenBody: Expression, // sig checked
-    val elseBody: Expression, // sig checked
-) : Expression(where) {
+    val elseBody: Expression?, // sig checked
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.ifFunction(this)
 
@@ -26,7 +26,7 @@ data class IfStatement(
             // Transfer metadata from lower to upper
             return Sign.NONE
         }
-        val elseSig = elseBody.sig()
+        val elseSig = elseBody?.sig()
         if (thenSig == elseSig) return thenSig
         return Sign.ANY
     }

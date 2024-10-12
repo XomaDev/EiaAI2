@@ -6,25 +6,26 @@ import space.themelon.eia64.signatures.Signature
 import space.themelon.eia64.syntax.Token
 
 data class Variable(
-    val where: Token,
-    val name: String,
-    val expr: Expression,
-    val expectSignature: Signature? = null
-) : Expression(where) {
+  val where: Token,
+  val name: String,
+  val value: Expression,
+  val promisedSignature: Signature? = null
+) : Expression() {
 
-    init {
-        sig()
+  init {
+    sig()
+  }
+
+  override fun <R> accept(v: Visitor<R>) = v.variable(this)
+
+  override fun sig(): Signature {
+    val exprSig = value.sig()
+    if (promisedSignature == null) {
+      return exprSig
     }
-
-    override fun <R> accept(v: Visitor<R>) = v.variable(this)
-
-    override fun sig(): Signature {
-        val exprSig = expr.sig()
-        if (expectSignature == null) return exprSig
-        if (!matches(expect = expectSignature, got = exprSig)) {
-            where.error<String>("Variable '$name' expected signature $expectSignature but got $exprSig")
-            throw RuntimeException()
-        }
-        return expectSignature
+    if (!matches(expect = promisedSignature, got = exprSig)) {
+      where.error<String>("Variable '$name' expected signature $promisedSignature but got $exprSig")
     }
+    return promisedSignature
+  }
 }

@@ -7,7 +7,7 @@ import space.themelon.eia64.syntax.Token
 data class FloatLiteral(
     val where: Token,
     val value: Float
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.floatLiteral(this)
 

@@ -10,7 +10,7 @@ data class When(
     val expr: Expression,
     val matches: List<Pair<Expression, Expression>>, // <Match, Body>, sig checked
     val defaultBranch: Expression,
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.whenExpr(this)
 

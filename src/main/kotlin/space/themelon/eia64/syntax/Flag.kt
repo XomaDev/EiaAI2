@@ -16,8 +16,6 @@ enum class Flag {
     VALUE,
     CONSTANT_VALUE,
 
-    V_KEYWORD,
-
     LOOP,
     NATIVE_CALL,
     INTERRUPTION,

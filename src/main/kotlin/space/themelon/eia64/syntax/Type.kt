@@ -53,7 +53,8 @@ enum class Type {
 
     GET, SEARCH, PROCEDURE,
 
-    KNOW, NEW,
+    PACKAGE, KNOW,
+    NEW,
 
     RETURN, BREAK, CONTINUE,
     ;
@@ -173,6 +174,7 @@ enum class Type {
                 it["openScreen"] = StaticToken(OPEN_SCREEN, arrayOf(Flag.NATIVE_CALL))
                 it["startValue"] = StaticToken(START_VALUE, arrayOf(Flag.NATIVE_CALL))
 
+                it["package"] = StaticToken(PACKAGE)
                 it["know"] = StaticToken(KNOW)
 
                 it["new"] = StaticToken(NEW)
@@ -185,7 +187,7 @@ enum class Type {
                 it["as"] = StaticToken(AS)
                 it["for"] = StaticToken(FOR, arrayOf(Flag.LOOP)) // auto scope
 
-                it["let"] = StaticToken(LET, arrayOf(Flag.V_KEYWORD))
+                it["let"] = StaticToken(LET)
 
                 it["if"] = StaticToken(IF, arrayOf(Flag.NONE)) // auto scope
                 it["else"] = StaticToken(ELSE, arrayOf(Flag.NONE))

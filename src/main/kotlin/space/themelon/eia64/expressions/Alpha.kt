@@ -10,7 +10,7 @@ data class Alpha(
     val index: Int,
     val value: String,
     val sign: Signature,
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.alpha(this)
 

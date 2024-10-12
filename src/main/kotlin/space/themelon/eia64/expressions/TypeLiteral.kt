@@ -8,7 +8,7 @@ import space.themelon.eia64.syntax.Token
 data class TypeLiteral(
     val where: Token,
     val signature: Signature
-): Expression(where) {
+): Expression() {
     override fun <R> accept(v: Visitor<R>) = v.typeLiteral(this)
 
     override fun sig() = Sign.TYPE

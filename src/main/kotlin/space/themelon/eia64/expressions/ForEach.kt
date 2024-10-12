@@ -10,7 +10,7 @@ data class ForEach(
     val name: String,
     val entity: Expression, // sig checked
     val body: Expression, // sig checked
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.forEach(this)
 

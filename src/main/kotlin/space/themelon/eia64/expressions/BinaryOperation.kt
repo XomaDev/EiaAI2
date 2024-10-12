@@ -12,7 +12,7 @@ data class BinaryOperation(
     val left: Expression, // sig checked
     val right: Expression, // sig checked
     val operator: Type
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.binaryOperation(this)
 

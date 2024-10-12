@@ -5,8 +5,6 @@ import space.themelon.eia64.signatures.Signature
 
 class ScopeManager {
 
-    val staticClasses = ArrayList<String>()
-
     // Helps us to know if `continue` and `break` statements
     // are allowed in the current scope
     // 0 => Not Allowed
@@ -78,10 +76,10 @@ class ScopeManager {
     fun readFnOutline(): FunctionReference = currentScope.sequentialFunctions.pop()
 
     // If it is marked Visible, then it can be indexed by external Parsers/Resolvers
-    fun defineVariable(name: String, signature: Signature, public: Boolean) {
+    fun defineVariable(name: String, signature: Signature) {
         if (currentScope.resolveVr(name) != null)
             throw RuntimeException("Variable $name is already defined")
-        currentScope.defineVr(name, signature, public)
+        currentScope.defineVr(name, signature)
     }
 
     fun hasFunctionNamed(name: String) = currentScope.resolveFnName(name)

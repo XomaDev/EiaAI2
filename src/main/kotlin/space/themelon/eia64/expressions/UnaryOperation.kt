@@ -11,7 +11,7 @@ data class UnaryOperation(
     val operator: Type,
     val expr: Expression, // sig checked
     val towardsLeft: Boolean
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.unaryOperation(this)
 

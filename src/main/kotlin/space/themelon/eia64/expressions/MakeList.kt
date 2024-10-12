@@ -7,7 +7,7 @@ import space.themelon.eia64.syntax.Token
 data class MakeList(
     val where: Token,
     val elements: List<Expression>
-): Expression(where) {
+): Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.makeList(this)
 

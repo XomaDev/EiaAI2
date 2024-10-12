@@ -13,7 +13,7 @@ data class FunctionExpr(
     val isVoid: Boolean,
     val returnSignature: Signature,
     val body: Expression // sig checked
-) : Expression(where) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.function(this)
 

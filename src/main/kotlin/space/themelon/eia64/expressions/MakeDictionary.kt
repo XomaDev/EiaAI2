@@ -7,7 +7,7 @@ import space.themelon.eia64.syntax.Token
 data class MakeDictionary(
     val where: Token,
     val elements: List<Pair<Expression, Expression>>
-): Expression(where) {
+): Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.makeDict(this)
 

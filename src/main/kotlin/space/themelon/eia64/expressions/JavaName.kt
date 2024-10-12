@@ -9,7 +9,7 @@ data class JavaName(
     val name: String,
     val static: Boolean,
     val signature: Signature
-): Expression(where) {
+): Expression() {
     override fun <R> accept(v: Visitor<R>) = v.javaName(this)
 
     override fun sig() = signature
