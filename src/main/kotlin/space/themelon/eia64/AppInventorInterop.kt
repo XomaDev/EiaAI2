@@ -9,14 +9,11 @@ import gnu.mapping.*
 import kawa.standard.Scheme
 import space.themelon.eia64.expressions.Struct
 import space.themelon.eia64.runtime.Conversions.eiaToJava
-import space.themelon.eia64.runtime.Executor
+import space.themelon.eia64.runtime.Environment
 import space.themelon.eia64.runtime.Nothing
 import space.themelon.eia64.syntax.Token
 import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
 import java.io.PrintStream
-import java.util.zip.ZipInputStream
 
 object AppInventorInterop {
 
@@ -24,10 +21,10 @@ object AppInventorInterop {
     private val environment = form.javaClass.getField("form\$Mnenvironment").get(form) as Environment
 
     private val stdout = ByteArrayOutputStream()
-    private var executor: Executor? = null
+    private var executor: Environment? = null
 
     fun init() {
-        val executor = Executor().also { this.executor = it }
+        val executor = Environment().also { this.executor = it }
 
         executor.standardOutput = PrintStream(stdout)
 

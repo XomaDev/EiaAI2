@@ -5,7 +5,7 @@ import com.google.appinventor.components.runtime.util.YailDictionary
 import com.google.appinventor.components.runtime.util.YailList
 import space.themelon.eia64.Expression
 import space.themelon.eia64.expressions.*
-import space.themelon.eia64.runtime.Executor
+import space.themelon.eia64.runtime.Environment
 import space.themelon.eia64.signatures.*
 import space.themelon.eia64.signatures.Matching.matches
 import space.themelon.eia64.syntax.Flag
@@ -15,7 +15,7 @@ import space.themelon.eia64.syntax.Type.*
 import java.lang.reflect.Method
 
 class Parser(
-  private val executor: Executor,
+  private val executor: Environment,
 ) {
 
   private var manager = ScopeManager()
@@ -40,17 +40,9 @@ class Parser(
     parseSkeleton()
     while (notEOF()) statement().let { if (it !is DiscardExpression) expressions += it }
     if (expressions.isEmpty()) return null
-    if (Executor.DEBUG) expressions.forEach { println(it) }
+    if (Environment.DEBUG) expressions.forEach { println(it) }
     parsed = ExpressionList(expressions)
     return parsed
-  }
-
-  private fun pkg(): String {
-    val pkgName = StringBuilder()
-    pkgName.append(eat(ALPHA))
-
-    while (consume(DOT)) pkgName.append(eat(ALPHA))
-    return pkgName.toString()
   }
 
   // make sure to update canParseNext() when we add stuff here!
@@ -98,9 +90,17 @@ class Parser(
     if (consume(OPEN_CURVE)) {
       val shortName = eat(ALPHA).data as String
       eat(COMMA)
-      return Know(pkg(), shortName)
+      return Know(readPackage(), shortName)
     }
-    return Know(pkg(), null)
+    return Know(readPackage(), null)
+  }
+
+  private fun readPackage(): String {
+    val pkgName = StringBuilder()
+    pkgName.append(eat(ALPHA))
+
+    while (consume(DOT)) pkgName.append(eat(ALPHA))
+    return pkgName.toString()
   }
 
   private fun parseSkeleton() {
@@ -109,8 +109,8 @@ class Parser(
 
     var curlyBracesCount = 0
 
-    fun handleFn(visible: Boolean) {
-      val reference = functionOutline(visible)
+    fun handleFn() {
+      val reference = functionOutline()
       manager.defineSemiFn(reference.name, reference)
     }
 
@@ -124,7 +124,7 @@ class Parser(
           else curlyBracesCount--
         }
 
-        FUN, EVENT, PROPERTY, BLOCK -> if (curlyBracesCount == 0) handleFn(false)
+        FUN, EVENT, PROPERTY, BLOCK -> if (curlyBracesCount == 0) handleFn()
         else -> {}
       }
     }
@@ -132,7 +132,7 @@ class Parser(
     index = originalIndex
   }
 
-  private fun functionOutline(public: Boolean): FunctionReference {
+  private fun functionOutline(): FunctionReference {
     val where = eat(ALPHA)
 
     val requiredArgs = argSignatures()
@@ -155,7 +155,6 @@ class Parser(
       requiredArgs.size,
       returnSignature,
       isVoid,
-      public,
       index
     )
   }
@@ -163,7 +162,7 @@ class Parser(
   // this function was repurposed for making java instances
   private fun newSmt(token: Token): Expression {
     val name = eat(ALPHA).data as String
-    val clazz = executor.knownJavaClasses[name]
+    val clazz = executor.classInjections[name]
       ?: token.error("Cannot find symbol '$name'")
     eat(OPEN_CURVE)
     val args = args()
@@ -448,7 +447,7 @@ class Parser(
       // end of execution
     }
     val name = token.data as String
-    val knownClass = executor.knownJavaClasses[name]
+    val knownClass = executor.classInjections[name]
     if (knownClass != null) return ClassSign(knownClass)
     token.error<String>("Unknown class ${token.data}")
     throw RuntimeException()
@@ -753,7 +752,7 @@ class Parser(
       E_STRING -> StringLiteral(token, token.data as String)
       E_CHAR -> CharLiteral(token, token.data as Char)
       AT -> parseStruct()
-      ALPHA -> verifyAlpha(token)
+      ALPHA -> Alpha(token)
       CLASS_VALUE -> parseType(token)
 
       OPEN_CURVE -> {
@@ -836,34 +835,6 @@ class Parser(
       events,
       children
     )
-  }
-
-  private fun verifyAlpha(token: Token): Expression {
-    val name = token.data as String
-    val vrReference = manager.resolveVr(name)
-    return if (vrReference == null) {
-      // could be a function call or static invocation
-      if (manager.hasFunctionNamed(name))
-        Alpha(token, -3, name, Sign.NONE)
-      else {
-        val envObj = executor.injectedObjects[name]
-        if (envObj != null) {
-          // jaa objects were injected :)
-          JavaName(token, name, false, ClassSign(executor.knownJavaClasses[name]!!))
-        } else {
-          val staticClass = executor.knownJavaClasses[name]
-          if (staticClass != null) {
-            JavaName(token, name, true, ClassSign(executor.knownJavaClasses[name]!!))
-          } else {
-            // Unresolved name
-            token.error("Cannot find symbol '$name'")
-          }
-        }
-      }
-    } else {
-      // classic variable access
-      Alpha(token, vrReference.index, name, vrReference.signature)
-    }
   }
 
   private fun parseType(token: Token): TypeLiteral {

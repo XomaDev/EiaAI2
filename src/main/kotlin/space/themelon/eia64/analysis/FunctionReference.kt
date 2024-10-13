@@ -12,7 +12,6 @@ data class FunctionReference(
     val argsSize: Int,
     val returnSignature: Signature,
     val isVoid: Boolean,
-    val public: Boolean,
     val tokenIndex: Int
 ) {
     // it is important to override toString() or else it may cause recursive StackOverFlow error

@@ -9,7 +9,7 @@ import space.themelon.eia64.syntax.Lexer
 import java.io.File
 import kotlin.system.exitProcess
 
-class Executor {
+class Environment {
 
     companion object {
         var DEBUG = true
@@ -24,14 +24,14 @@ class Executor {
     private val evaluator = Evaluator("Main", this)
     private val parser = Parser(this)
 
-    val injectedObjects = HashMap<String, EJava>()
-    val knownJavaClasses = HashMap<String, Class<*>>()
+    val injections = HashMap<String, EJava>()
+    val classInjections = HashMap<String, Class<*>>()
 
     fun defineJavaObject(name: String, obj: Any) {
-        injectedObjects += name to EJava(obj, name)
+        injections += name to EJava(obj, name)
 
-        knownJavaClasses += name to obj.javaClass
-        knownJavaClasses += obj.javaClass.simpleName to obj.javaClass
+        classInjections += name to obj.javaClass
+        classInjections += obj.javaClass.simpleName to obj.javaClass
     }
 
     fun parse(source: String) = parser.parse(Lexer(source).tokens)

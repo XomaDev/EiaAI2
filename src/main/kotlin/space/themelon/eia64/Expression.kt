@@ -1,12 +1,17 @@
 package space.themelon.eia64
 
+import space.themelon.eia64.analysis.ScopeManager
 import space.themelon.eia64.expressions.*
 import space.themelon.eia64.expressions.FunctionExpr
+import space.themelon.eia64.runtime.Environment
 import space.themelon.eia64.signatures.Signature
 
 abstract class Expression {
 
     interface Visitor<R> {
+        fun getVar(name: String, index: Int): R
+        fun getInjected(name: String): R
+
         fun noneExpression(): R
         fun nilLiteral(nil: NilLiteral): R
         fun intLiteral(literal: IntLiteral): R
@@ -16,7 +21,6 @@ abstract class Expression {
         fun stringLiteral(literal: StringLiteral): R
         fun charLiteral(literal: CharLiteral): R
         fun typeLiteral(literal: TypeLiteral): R
-        fun alpha(alpha: Alpha): R
         fun makeList(makeList: MakeList): R
         fun makeDict(makeDict: MakeDictionary): R
         fun variable(variable: Variable): R
@@ -51,5 +55,5 @@ abstract class Expression {
     }
 
     abstract fun <R> accept(v: Visitor<R>): R
-    abstract fun sig(): Signature
+    abstract fun sig(env: Environment, scope: ScopeManager): Signature
 }

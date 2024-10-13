@@ -25,7 +25,7 @@ import kotlin.random.Random
 
 class Evaluator(
     val className: String,
-    private val executor: Executor
+    private val executor: Environment
 ) : Expression.Visitor<Any> {
 
     private val startupTime = System.currentTimeMillis()
@@ -82,10 +82,8 @@ class Evaluator(
     override fun charLiteral(literal: CharLiteral) = EChar(literal.value)
     override fun typeLiteral(literal: TypeLiteral) = EType(literal.signature)
 
-    override fun alpha(alpha: Alpha) = memory.getVar(alpha.index, alpha.value)
-
-    override fun javaName(jName: JavaName) = executor.injectedObjects[jName.name]
-        ?: jName.where.error("Couldn't find Java Object '${jName.name}'")
+    override fun getVar(name: String, index: Int) = memory.getVar(index, name)
+    override fun getInjected(name: String) = executor.injections[name]!!
 
     override fun struct(struct: Struct): EJava {
         val parent = struct.parent?.let { unboxEval(it).eiaToJava() } ?: Form.getActiveForm()
@@ -442,7 +440,7 @@ class Evaluator(
             // don't do a direct exitProcess(n), Eia could be running in a server
             // you don't need the entire server to shut down
             EXIT -> {
-                Executor.EIA_SHUTDOWN(intExpr(args[0]).get())
+                Environment.EIA_SHUTDOWN(intExpr(args[0]).get())
                 return EBool(true) // never reached (hopefully?)
             }
 
@@ -465,14 +463,14 @@ class Evaluator(
             
             GET -> {
                 val name = unboxEval(args[0]).toString()
-                return executor.injectedObjects[name] ?: where.error("Couldn't find Java Object '$name'")
+                return executor.injections[name] ?: where.error("Couldn't find Java Object '$name'")
             }
 
             SEARCH -> {
                 val regex = Regex(unboxEval(args[0]).toString())
                 val expectedName = unboxEval(args[1]).toString()
                 val components = ArrayList<Any>()
-                executor.injectedObjects.entries.forEach { entry ->
+                executor.injections.entries.forEach { entry ->
                     if (entry.key.matches(regex) && entry.value.get().javaClass.simpleName == expectedName) {
                         components += entry.value
                     }
