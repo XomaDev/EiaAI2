@@ -38,6 +38,8 @@ abstract class Expression {
         fun ifFunction(ifExpr: IfStatement): R
         fun function(function: FunctionExpr): R
 
+        fun know(name: String, clazz: Class<*>): R
+
         fun newJava(newInstance: NewInstance): R
         fun javaName(jName: JavaName): R
         fun javaFieldAccess(access: JavaFieldAccess): R

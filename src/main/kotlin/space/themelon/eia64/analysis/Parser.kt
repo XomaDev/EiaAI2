@@ -18,10 +18,6 @@ class Parser(
   private val executor: Executor,
 ) {
 
-  companion object {
-    val COMPONENTS_PACKAGE = "com.google.appinventor.components.runtime."
-  }
-
   private var manager = ScopeManager()
   private val javaClasses = HashMap<String, Class<*>>()
 
@@ -29,9 +25,7 @@ class Parser(
   private var index = 0
   private var size = 0
 
-  lateinit var parsed: ExpressionList
-  
-  private var pkgName = ""
+  private lateinit var parsed: ExpressionList
 
   fun reset() {
     manager = ScopeManager()
@@ -42,8 +36,6 @@ class Parser(
     size = tokens.size
     this.tokens = tokens
 
-    headers()
-
     val expressions = ArrayList<Expression>()
     parseSkeleton()
     while (notEOF()) statement().let { if (it !is DiscardExpression) expressions += it }
@@ -51,33 +43,6 @@ class Parser(
     if (Executor.DEBUG) expressions.forEach { println(it) }
     parsed = ExpressionList(expressions)
     return parsed
-  }
-
-  private fun headers() {
-//    if (consume(PACKAGE)) {
-//      pkgName = pkg()
-//    }
-    while (consume(KNOW)) {
-      javaClasses += getCorrectedClass(pkg())
-    }
-  }
-
-  private fun getCorrectedClass(pkgName: String): Pair<String, Class<*>> {
-    try {
-      return pkgName to Class.forName(pkgName)
-    } catch (e: ClassNotFoundException) {
-      pkgName.lastIndexOf('.').let {
-        if (it == -1) throw e
-        else {
-          val correctedPkgName = pkgName.substring(0, it) + '$' + pkgName.substring(it + 1)
-          try {
-            return correctedPkgName to Class.forName(correctedPkgName)
-          } catch (e: ClassNotFoundException) {
-            throw RuntimeException("Could not find Java class for package $pkgName")
-          }
-        }
-      }
-    }
   }
 
   private fun pkg(): String {
@@ -99,8 +64,9 @@ class Parser(
       }
     }
     return when (token.type) {
+      KNOW -> knowSmt()
       IF -> ifSmt(token)
-      FUN, EVENT, PROPERTY, BLOCK, -> funSmt(token.type)
+      FUN, EVENT, PROPERTY, BLOCK -> funSmt(token.type)
       NEW -> newSmt(token)
       LET -> return variableDeclaration(token)
       else -> {
@@ -118,12 +84,23 @@ class Parser(
           return true
       }
     return when (token.type) {
+      KNOW,
       IF,
       FUN, EVENT, PROPERTY, BLOCK,
       LET,
       NEW -> true
+
       else -> false
     }
+  }
+
+  private fun knowSmt(): Know {
+    if (consume(OPEN_CURVE)) {
+      val shortName = eat(ALPHA).data as String
+      eat(COMMA)
+      return Know(pkg(), shortName)
+    }
+    return Know(pkg(), null)
   }
 
   private fun parseSkeleton() {
@@ -422,7 +399,8 @@ class Parser(
   }
 
   private fun readVariableDeclaration(
-    where: Token, ): Expression {
+    where: Token,
+  ): Expression {
     val name = eat(ALPHA).data as String
 
     val expr: Expression
@@ -804,7 +782,7 @@ class Parser(
    */
   private fun parseStruct(): Struct {
     val name = eat(ALPHA).data as String
-    val clazz = Class.forName(COMPONENTS_PACKAGE + name)
+    val clazz = Class.forName(name)
     val constructor = clazz.getConstructor(ComponentContainer::class.java)
 
     val props = ArrayList<Pair<Method, Expression>>()
@@ -866,12 +844,7 @@ class Parser(
     return if (vrReference == null) {
       // could be a function call or static invocation
       if (manager.hasFunctionNamed(name))
-      // there could be multiple functions with same name
-      // but different args, this just marks it as a function
         Alpha(token, -3, name, Sign.NONE)
-//            else if (manager.staticClasses.contains(name))
-//            // probably referencing a method from an outer class
-//                Alpha(token, -2, name, Sign.NONE)
       else {
         val envObj = executor.injectedObjects[name]
         if (envObj != null) {
