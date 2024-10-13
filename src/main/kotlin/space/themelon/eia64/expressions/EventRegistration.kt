@@ -15,5 +15,5 @@ data class EventRegistration(
 
     override fun <R> accept(v: Visitor<R>) = v.eventRegistration(this)
 
-    override fun sig() = Sign.NONE
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.NONE
 }

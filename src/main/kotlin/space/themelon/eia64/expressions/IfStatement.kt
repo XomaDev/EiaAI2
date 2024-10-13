@@ -14,7 +14,7 @@ data class IfStatement(
 
     override fun <R> accept(v: Visitor<R>) = v.ifFunction(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         condition.sig() // necessary
 
         val thenSig = thenBody.sig()

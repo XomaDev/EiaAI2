@@ -29,7 +29,7 @@ data class ExpressionList(
         return Sign.NONE
     }
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         val expressionItr = expressions.iterator()
         while (expressionItr.hasNext()) {
             val expr = expressionItr.next()

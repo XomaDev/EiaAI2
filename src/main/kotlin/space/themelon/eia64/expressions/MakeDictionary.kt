@@ -11,5 +11,5 @@ data class MakeDictionary(
 
     override fun <R> accept(v: Visitor<R>) = v.makeDict(this)
 
-    override fun sig() = Sign.DICT
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.DICT
 }

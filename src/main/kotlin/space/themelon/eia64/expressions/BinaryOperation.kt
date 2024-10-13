@@ -1,6 +1,8 @@
 package space.themelon.eia64.expressions
 
 import space.themelon.eia64.Expression
+import space.themelon.eia64.analysis.ScopeManager
+import space.themelon.eia64.runtime.Environment
 import space.themelon.eia64.signatures.Matching.numericOrChar
 import space.themelon.eia64.signatures.Sign
 import space.themelon.eia64.signatures.Signature
@@ -16,9 +18,9 @@ data class BinaryOperation(
 
     override fun <R> accept(v: Visitor<R>) = v.binaryOperation(this)
 
-    override fun sig(): Signature {
-        val leftExprSign = left.sig()
-        val rightExprSign = right.sig()
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
+        val leftExprSign = left.sig(env, scope)
+        val rightExprSign = right.sig(env, scope)
 
         val leftLogName = leftExprSign.logName()
         val rightLogName = rightExprSign.logName()

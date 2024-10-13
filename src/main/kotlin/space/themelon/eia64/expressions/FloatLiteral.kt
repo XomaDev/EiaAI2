@@ -11,5 +11,5 @@ data class FloatLiteral(
 
     override fun <R> accept(v: Visitor<R>) = v.floatLiteral(this)
 
-    override fun sig() = Sign.FLOAT
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.FLOAT
 }

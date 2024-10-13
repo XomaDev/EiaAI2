@@ -11,5 +11,5 @@ data class StringLiteral(
 
     override fun <R> accept(v: Visitor<R>) = v.stringLiteral(this)
 
-    override fun sig() = Sign.STRING
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.STRING
 }

@@ -15,7 +15,7 @@ data class UnaryOperation(
 
     override fun <R> accept(v: Visitor<R>) = v.unaryOperation(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         val exprSign = expr.sig()
         if (towardsLeft) {
             when (operator) {

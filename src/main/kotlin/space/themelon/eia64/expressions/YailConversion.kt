@@ -10,5 +10,5 @@ data class YailConversion(
 
     override fun <R> accept(v: Visitor<R>) = v.yailConversion(this)
 
-    override fun sig() = ClassSign(clazz)
+    override fun sig(env: Environment, scope: ScopeManager) = ClassSign(clazz)
 }

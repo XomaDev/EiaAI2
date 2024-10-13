@@ -11,5 +11,5 @@ data class MakeList(
 
     override fun <R> accept(v: Visitor<R>) = v.makeList(this)
 
-    override fun sig() = Sign.LIST
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.LIST
 }

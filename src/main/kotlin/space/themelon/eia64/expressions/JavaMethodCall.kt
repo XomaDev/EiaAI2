@@ -15,7 +15,7 @@ data class JavaMethodCall(
 
     override fun <R> accept(v: Visitor<R>) = v.javaMethodCall(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         args.forEach { it.sig() }
         return callSignature
     }

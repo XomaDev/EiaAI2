@@ -14,7 +14,7 @@ data class MethodCall(
 
     override fun <R> accept(v: Visitor<R>) = v.methodCall(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         val argSigns = reference.parameters
 
         val expectedArgsSize = argSigns.size

@@ -11,5 +11,5 @@ data class DoubleLiteral(
 
     override fun <R> accept(v: Visitor<R>) = v.doubleLiteral(this)
 
-    override fun sig() = Sign.DOUBLE
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.DOUBLE
 }

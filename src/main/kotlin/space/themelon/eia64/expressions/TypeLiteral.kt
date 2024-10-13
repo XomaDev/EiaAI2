@@ -11,5 +11,5 @@ data class TypeLiteral(
 ): Expression() {
     override fun <R> accept(v: Visitor<R>) = v.typeLiteral(this)
 
-    override fun sig() = Sign.TYPE
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.TYPE
 }

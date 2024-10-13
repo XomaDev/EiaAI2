@@ -11,7 +11,7 @@ data class IsStatement(
 
     override fun <R> accept(v: Visitor<R>) = v.isStatement(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         expression.sig() // necessary
         return Sign.BOOL
     }

@@ -7,5 +7,5 @@ import space.themelon.eia64.syntax.Token
 class NilLiteral: Expression() {
     override fun <R> accept(v: Visitor<R>) = v.nilLiteral(this)
 
-    override fun sig() = Sign.NIL
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.NIL
 }

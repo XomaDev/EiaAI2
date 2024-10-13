@@ -12,7 +12,7 @@ data class ExpressionBind(
 
     override fun <R> accept(v: Visitor<R>) = v.expressionBind(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         expressions.forEach { it.sig() }
         return Sign.NONE // this does not return anything, non-consumable
     }

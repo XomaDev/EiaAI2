@@ -14,7 +14,7 @@ data class Interruption(
 
     override fun <R> accept(v: Visitor<R>) = v.interruption(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         expr?.sig() // necessary
 
         if (operator == Type.RETURN || operator == Type.USE) {

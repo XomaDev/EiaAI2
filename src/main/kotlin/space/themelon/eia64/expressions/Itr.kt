@@ -16,7 +16,7 @@ data class Itr(
 
     override fun <R> accept(v: Visitor<R>) = v.itr(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         from.sig()
         to.sig()
         by?.sig()

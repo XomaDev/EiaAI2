@@ -14,5 +14,5 @@ data class JavaFieldAccess(
 
     override fun <R> accept(v: Visitor<R>) = v.javaFieldAccess(this)
 
-    override fun sig() = fieldSignature
+    override fun sig(env: Environment, scope: ScopeManager) = fieldSignature
 }

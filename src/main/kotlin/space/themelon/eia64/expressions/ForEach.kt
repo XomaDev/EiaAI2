@@ -14,7 +14,7 @@ data class ForEach(
 
     override fun <R> accept(v: Visitor<R>) = v.forEach(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         entity.sig()
         body.sig()
         return Sign.NONE

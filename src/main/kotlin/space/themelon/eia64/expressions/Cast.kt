@@ -13,7 +13,7 @@ data class Cast(
     // we actually do require evaluating this node at runtime
     override fun <R> accept(v: Visitor<R>) = v.cast(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         return expectSignature
     }
 }

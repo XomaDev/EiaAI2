@@ -14,7 +14,7 @@ data class When(
 
     override fun <R> accept(v: Visitor<R>) = v.whenExpr(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         // necessary
         matches.forEach { it.first.sig(); it.second.sig() }
 

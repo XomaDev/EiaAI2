@@ -18,7 +18,7 @@ data class Variable(
 
   override fun <R> accept(v: Visitor<R>) = v.variable(this)
 
-  override fun sig(): Signature {
+  override fun sig(env: Environment, scope: ScopeManager): Signature {
     val exprSig = value.sig()
     if (promisedSignature == null) {
       return exprSig

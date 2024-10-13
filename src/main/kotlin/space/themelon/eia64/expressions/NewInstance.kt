@@ -15,5 +15,5 @@ class NewInstance(
 
     override fun <R> accept(v: Visitor<R>) = v.newJava(this)
 
-    override fun sig() = ClassSign(clazz)
+    override fun sig(env: Environment, scope: ScopeManager) = ClassSign(clazz)
 }

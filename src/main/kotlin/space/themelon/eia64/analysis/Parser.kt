@@ -1,6 +1,5 @@
 package space.themelon.eia64.analysis
 
-import com.google.appinventor.components.runtime.ComponentContainer
 import com.google.appinventor.components.runtime.util.YailDictionary
 import com.google.appinventor.components.runtime.util.YailList
 import space.themelon.eia64.Expression
@@ -8,6 +7,8 @@ import space.themelon.eia64.expressions.*
 import space.themelon.eia64.runtime.Environment
 import space.themelon.eia64.signatures.*
 import space.themelon.eia64.signatures.Matching.matches
+import space.themelon.eia64.structs.Event
+import space.themelon.eia64.structs.Property
 import space.themelon.eia64.syntax.Flag
 import space.themelon.eia64.syntax.Token
 import space.themelon.eia64.syntax.Type
@@ -135,7 +136,7 @@ class Parser(
   private fun functionOutline(): FunctionReference {
     val where = eat(ALPHA)
 
-    val requiredArgs = argSignatures()
+    val requiredArgs = paramSignatures()
 
     val isVoid: Boolean
     val returnSignature = if (isNext(COLON)) {
@@ -302,7 +303,7 @@ class Parser(
     )
   }
 
-  private fun argSignatures(): List<Pair<String, Signature>> {
+  private fun paramSignatures(): List<Pair<String, Signature>> {
     eat(OPEN_CURVE)
     val requiredArgs = mutableListOf<Pair<String, Signature>>()
     while (notEOF() && peek().type != CLOSE_CURVE) {
@@ -467,7 +468,7 @@ class Parser(
 
   private fun parseExpr(minPrecedence: Int): Expression {
     // this parses a full expressions, until it's done!
-    var left = parseElement()
+    var left = element()
     if (notEOF() && peek().hasFlag(Flag.POSSIBLE_RIGHT_UNARY)) {
       val where = next()
       left = UnaryOperation(where, where.type, left, false)
@@ -487,7 +488,7 @@ class Parser(
         left = IsStatement(left, signature)
       } else {
         val right =
-          if (opToken.hasFlag(Flag.PRESERVE_ORDER)) parseElement()
+          if (opToken.hasFlag(Flag.PRESERVE_ORDER)) element()
           else parseExpr(precedence)
         left = makeBinaryExpr(
           opToken,
@@ -537,7 +538,7 @@ class Parser(
     )
   }
 
-  private fun parseElement(): Expression {
+  private fun element(): Expression {
     var left = parseTerm()
     // checks for calling methods located in different classes and also
     //  for array access parsing
@@ -708,7 +709,7 @@ class Parser(
       // TODO:
       //  Note: it previously used to call parseTerm() but we changed to parseElement()
       /// Just remember this if something goes wrong while parsing the syntax!
-      token.hasFlag(Flag.UNARY) -> return UnaryOperation(token, token.type, parseElement(), true)
+      token.hasFlag(Flag.UNARY) -> return UnaryOperation(token, token.type, element(), true)
       token.hasFlag(Flag.NATIVE_CALL) -> {
         eat(OPEN_CURVE)
         val arguments = args()
@@ -742,27 +743,18 @@ class Parser(
     return MakeDictionary(where, elements)
   }
 
-  private fun parseValue(token: Token): Expression {
-    return when (token.type) {
-      NIL -> NilLiteral()
-      E_TRUE, E_FALSE -> BoolLiteral(token, token.type == E_TRUE)
-      E_INT -> IntLiteral(token, token.data.toString().toInt())
-      E_FLOAT -> FloatLiteral(token, token.data.toString().toFloat())
-      E_DOUBLE -> DoubleLiteral(token, token.data.toString().toDouble())
-      E_STRING -> StringLiteral(token, token.data as String)
-      E_CHAR -> CharLiteral(token, token.data as Char)
-      AT -> parseStruct()
-      ALPHA -> Alpha(token)
-      CLASS_VALUE -> parseType(token)
-
-      OPEN_CURVE -> {
-        val expr = statement()
-        eat(CLOSE_CURVE)
-        expr
-      }
-
-      else -> token.error("Unknown token type")
-    }
+  private fun parseValue(token: Token) = when (token.type) {
+    NIL -> NilLiteral()
+    E_TRUE, E_FALSE -> BoolLiteral(token, token.type == E_TRUE)
+    E_INT -> IntLiteral(token, token.data.toString().toInt())
+    E_FLOAT -> FloatLiteral(token, token.data.toString().toFloat())
+    E_DOUBLE -> DoubleLiteral(token, token.data.toString().toDouble())
+    E_STRING -> StringLiteral(token, token.data as String)
+    E_CHAR -> CharLiteral(token, token.data as Char)
+    AT -> struct()
+    ALPHA -> Alpha(token)
+    CLASS_VALUE -> parseType(token)
+    else -> token.error("Unknown token type")
   }
 
   /*
@@ -779,62 +771,38 @@ class Parser(
    *   }
    * }
    */
-  private fun parseStruct(): Struct {
-    val name = eat(ALPHA).data as String
-    val clazz = Class.forName(name)
-    val constructor = clazz.getConstructor(ComponentContainer::class.java)
 
-    val props = ArrayList<Pair<Method, Expression>>()
-    // registered events
-    // Map < EventName > = Pair < List<ArgSignature>, Expression >
-    val events = HashMap<String, Pair<List<Pair<String, Signature>>, Expression>>()
-    val children = ArrayList<Struct>()
+  private fun struct(): ComponentDefinition {
+    val componentName = eat(ALPHA).data as String
 
-    var parent: Expression? = null
-    if (consume(OPEN_CURVE)) {
-      parent = statement()
-      eat(CLOSE_CURVE)
-    }
+    val parent = if (isNext(OPEN_CURVE)) between(OPEN_CURVE, CLOSE_CURVE) { statement() } else null
+    val identifier = peek().let { if (it.type == ALPHA) it.data as String else null }
 
-    val identifier = if (isNext(ALPHA)) eat(ALPHA).data as String else clazz.simpleName + System.currentTimeMillis()
+    val properties = mutableListOf<Property>()
+    val events = mutableMapOf<String, Event>()
+    val children = mutableListOf<ComponentDefinition>()
 
     eat(OPEN_CURLY)
-    while (!isNext(CLOSE_CURLY)) {
-      if (consume(AT)) {
-        children += parseStruct()
-        continue
-      }
-      if (consume(WHEN)) {
-        eat(DOT)
-        // event registration
-        val eventName = eat(ALPHA).data as String
-        val args = if (isNext(OPEN_CURVE)) argSignatures() else emptyList()
-        eat(COLON)
-        val body = parseElement()
-        events += eventName to (args to body)
-      } else {
-        val propNameToken = eat(ALPHA)
-        val propName = propNameToken.data as String
-        val method = clazz.methods.find { it.name == propName && it.parameterCount == 1 }
-          ?: propNameToken.error("Could not find property name '$propName' on component '$name'")
-        eat(COLON)
-        val propValue = statement()
-        props += method to propValue
 
+    while (!consume(CLOSE_CURLY)) {
+      val token = next()
+      when (token.type) {
+        AT -> children += struct()
+        WHEN -> {
+          eat(DOT)
+          val eventName = eat(ALPHA).data as String
+          val params = if (isNext(OPEN_CURVE)) paramSignatures() else emptyList()
+          eat(COLON)
+          events += eventName to Event(params, statement())
+        }
+        ALPHA -> {
+          eat(COLON)
+          properties += Property(token, token.data as String, statement())
+        }
+        else -> eat(COMMA)
       }
-      if (!consume(COMMA)) break
     }
-    eat(CLOSE_CURLY)
-
-    return Struct(
-      identifier,
-      parent,
-      name,
-      constructor,
-      props,
-      events,
-      children
-    )
+    return ComponentDefinition(componentName, parent, identifier, properties, events, children)
   }
 
   private fun parseType(token: Token): TypeLiteral {

@@ -15,7 +15,7 @@ data class ForLoop(
 
     override fun <R> accept(v: Visitor<R>) = v.forLoop(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         initializer?.sig()
         conditional?.sig()
         operational?.sig()

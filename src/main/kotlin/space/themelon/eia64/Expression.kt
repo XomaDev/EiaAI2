@@ -45,13 +45,12 @@ abstract class Expression {
         fun know(name: String, clazz: Class<*>): R
 
         fun newJava(newInstance: NewInstance): R
-        fun javaName(jName: JavaName): R
         fun javaFieldAccess(access: JavaFieldAccess): R
         fun javaMethodCall(jCall: JavaMethodCall): R
         fun eventRegistration(registration: EventRegistration): R
 
         fun yailConversion(yailConversion: YailConversion): R
-        fun struct(struct: Struct): R
+        fun struct(componentDefinition: ComponentDefinition): R
     }
 
     abstract fun <R> accept(v: Visitor<R>): R

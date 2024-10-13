@@ -10,5 +10,5 @@ class NoneExpression: Expression() {
     }
 
     override fun <R> accept(v: Visitor<R>) = v.noneExpression()
-    override fun sig() = Sign.NONE
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.NONE
 }

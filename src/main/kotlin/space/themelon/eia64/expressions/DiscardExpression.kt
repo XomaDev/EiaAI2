@@ -9,7 +9,7 @@ class DiscardExpression: Expression() {
         throw UnsupportedOperationException()
     }
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         throw UnsupportedOperationException()
     }
 }

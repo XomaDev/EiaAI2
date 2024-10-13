@@ -12,5 +12,5 @@ data class JavaName(
 ): Expression() {
     override fun <R> accept(v: Visitor<R>) = v.javaName(this)
 
-    override fun sig() = signature
+    override fun sig(env: Environment, scope: ScopeManager) = signature
 }

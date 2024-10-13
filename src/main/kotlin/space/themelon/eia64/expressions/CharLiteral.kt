@@ -11,5 +11,5 @@ data class CharLiteral(
 
     override fun <R> accept(v: Visitor<R>) = v.charLiteral(this)
 
-    override fun sig() = Sign.CHAR
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.CHAR
 }

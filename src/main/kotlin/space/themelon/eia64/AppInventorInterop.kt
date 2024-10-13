@@ -7,7 +7,7 @@ import com.google.appinventor.components.runtime.*
 import gnu.lists.LList
 import gnu.mapping.*
 import kawa.standard.Scheme
-import space.themelon.eia64.expressions.Struct
+import space.themelon.eia64.expressions.ComponentDefinition
 import space.themelon.eia64.runtime.Conversions.eiaToJava
 import space.themelon.eia64.runtime.Environment
 import space.themelon.eia64.runtime.Nothing
@@ -136,7 +136,7 @@ object AppInventorInterop {
         val parsed = executor?.parse(source)
             ?: throw RuntimeException("Cannot render from a non struct")
         parsed.expressions.forEach {
-            if (it !is Struct) {
+            if (it !is ComponentDefinition) {
                 throw RuntimeException("Expected a struct expression to render but got " + it.javaClass.simpleName)
             }
             executor?.render(parent, it)

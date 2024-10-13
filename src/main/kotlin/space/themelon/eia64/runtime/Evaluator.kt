@@ -30,20 +30,18 @@ class Evaluator(
 
     private val startupTime = System.currentTimeMillis()
 
-    private var evaluator: Expression.Visitor<Any> = this
+    private var evaluator: Expression.Visitor<Any>? = this
 
     fun shutdown() {
-        // Reroute all the traffic to Void, which would raise ShutdownException.
-        // We use this strategy to cause an efficient shutdown than checking fields each time
-        evaluator = VoidEvaluator()
+        evaluator = null
     }
 
-    fun eval(expr: Expression) = expr.accept(evaluator)
+    fun eval(expr: Expression) = expr.accept(evaluator!!)
 
     fun render(
         parent: AndroidViewComponent,
-        struct: Struct
-    ) = makeViewComponent(parent, struct)
+        componentDefinition: ComponentDefinition
+    ) = makeViewComponent(parent, componentDefinition)
 
     private fun unboxEval(expr: Expression) = unbox(eval(expr))
 
@@ -71,6 +69,10 @@ class Evaluator(
         memory.clearMemory()
     }
 
+    override fun know(name: String, clazz: Class<*>): Any {
+        TODO("Not yet implemented")
+    }
+
     override fun noneExpression() = Nothing.INSTANCE
     override fun nilLiteral(nil: NilLiteral) = ENil()
     override fun intLiteral(literal: IntLiteral) = EInt(literal.value)
@@ -85,38 +87,27 @@ class Evaluator(
     override fun getVar(name: String, index: Int) = memory.getVar(index, name)
     override fun getInjected(name: String) = executor.injections[name]!!
 
-    override fun struct(struct: Struct): EJava {
-        val parent = struct.parent?.let { unboxEval(it).eiaToJava() } ?: Form.getActiveForm()
-        val component = makeViewComponent(parent, struct)
+    override fun struct(componentDefinition: ComponentDefinition): EJava {
+        val parent = componentDefinition.parent?.let { unboxEval(it).eiaToJava() } ?: Form.getActiveForm()
+        val component = makeViewComponent(parent, componentDefinition)
         component.view.parent?.let { if (it is ViewGroup) it.removeView(component.view) }
-        return EJava(component, "Struct<${struct.name}>")
+        return EJava(component, "Struct<${componentDefinition}>")
     }
 
-    private fun makeViewComponent(
-        parent: Any,
-        struct: Struct
-    ): AndroidViewComponent {
-        val component = struct.constructor.newInstance(parent) as AndroidViewComponent
-        AppInventorInterop.registerComponent(struct.identifier, component)
+    private fun makeViewComponent(parent: Any, definition: ComponentDefinition): AndroidViewComponent {
+        definition.lookup()
+        val component = definition.constructor!!.newInstance(parent) as AndroidViewComponent
+        AppInventorInterop.registerComponent(definition.componentId, component)
 
-        struct.props.forEach { it.first.invoke(component, unboxEval(it.second).eiaToJava()) }
-
-        val componentName = struct.identifier
-        struct.events.forEach { eventInfo ->
-            val dispatchInfo = eventInfo.value
-            AppInventorInterop.proxyEvent(
-                componentName,
-                eventInfo.key,
-            ) { args ->
-                dispatchEvent(
-                    componentName,
-                    dispatchInfo.first,
-                    args,
-                    dispatchInfo.second,
-                )
+        definition.methodsProps?.forEach {
+            it.first.invoke(component, unboxEval(it.second).eiaToJava())
+        }
+        definition.events.forEach { (eventName, info) ->
+            AppInventorInterop.proxyEvent(definition.componentId, eventName) { params ->
+                dispatchEvent(definition.componentId, info.params, params, info.expression)
             }
         }
-        struct.children.forEach { makeViewComponent(component, it) }
+        definition.children.forEach { makeViewComponent(component, it) }
         return component
     }
 

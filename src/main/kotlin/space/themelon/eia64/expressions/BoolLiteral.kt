@@ -11,5 +11,5 @@ data class BoolLiteral(
 
     override fun <R> accept(v: Visitor<R>) = v.boolLiteral(this)
 
-    override fun sig() = Sign.BOOL
+    override fun sig(env: Environment, scope: ScopeManager) = Sign.BOOL
 }

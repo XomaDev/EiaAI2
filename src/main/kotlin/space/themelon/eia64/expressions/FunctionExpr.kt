@@ -17,7 +17,7 @@ data class FunctionExpr(
 
     override fun <R> accept(v: Visitor<R>) = v.function(this)
 
-    override fun sig(): Signature {
+    override fun sig(env: Environment, scope: ScopeManager): Signature {
         body.sig()
         val receivedSignature = if (body is ExpressionList) body.returnSig() else body.sig()
         if (!isVoid && !matches(returnSignature, receivedSignature)) {
