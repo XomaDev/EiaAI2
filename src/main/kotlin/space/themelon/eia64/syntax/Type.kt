@@ -43,6 +43,7 @@ enum class Type {
     IF, ELSE,
     EACH, TO, IN, BY, AS,
     FOR, UNTIL,
+    EVENT, PROPERTY, BLOCK,
     FUN,
     COPY, TIME, RAND, PRINT, PRINTF, LEN, SLEEP, FORMAT, EXIT,
 
@@ -53,7 +54,7 @@ enum class Type {
 
     GET, SEARCH, PROCEDURE,
 
-    PACKAGE, KNOW,
+    KNOW,
     NEW,
 
     RETURN, BREAK, CONTINUE,
@@ -174,7 +175,7 @@ enum class Type {
                 it["openScreen"] = StaticToken(OPEN_SCREEN, arrayOf(Flag.NATIVE_CALL))
                 it["startValue"] = StaticToken(START_VALUE, arrayOf(Flag.NATIVE_CALL))
 
-                it["package"] = StaticToken(PACKAGE)
+                //it["package"] = StaticToken(PACKAGE)
                 it["know"] = StaticToken(KNOW)
 
                 it["new"] = StaticToken(NEW)
@@ -191,6 +192,10 @@ enum class Type {
 
                 it["if"] = StaticToken(IF, arrayOf(Flag.NONE)) // auto scope
                 it["else"] = StaticToken(ELSE, arrayOf(Flag.NONE))
+
+                it["event"] = StaticToken(EVENT)
+                it["property"] = StaticToken(PROPERTY)
+                it["block"] = StaticToken(BLOCK)
 
                 it["fun"] = StaticToken(FUN, arrayOf(Flag.NONE)) // manual scope
                 it["when"] = StaticToken(WHEN)

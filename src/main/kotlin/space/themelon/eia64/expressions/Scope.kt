@@ -5,7 +5,7 @@ import space.themelon.eia64.Expression
 data class Scope(
     val expr: Expression, // sig checked
     val imaginary: Boolean
-) : Expression(null) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.scope(this)
 

@@ -54,9 +54,9 @@ class Parser(
   }
 
   private fun headers() {
-    if (consume(PACKAGE)) {
-      pkgName = pkg()
-    }
+//    if (consume(PACKAGE)) {
+//      pkgName = pkg()
+//    }
     while (consume(KNOW)) {
       javaClasses += getCorrectedClass(pkg())
     }
@@ -100,7 +100,7 @@ class Parser(
     }
     return when (token.type) {
       IF -> ifSmt(token)
-      FUN -> funSmt()
+      FUN, EVENT, PROPERTY, BLOCK, -> funSmt(token.type)
       NEW -> newSmt(token)
       LET -> return variableDeclaration(token)
       else -> {
@@ -119,7 +119,7 @@ class Parser(
       }
     return when (token.type) {
       IF,
-      FUN,
+      FUN, EVENT, PROPERTY, BLOCK,
       LET,
       NEW -> true
       else -> false
@@ -147,7 +147,7 @@ class Parser(
           else curlyBracesCount--
         }
 
-        FUN -> if (curlyBracesCount == 0) handleFn(false)
+        FUN, EVENT, PROPERTY, BLOCK -> if (curlyBracesCount == 0) handleFn(false)
         else -> {}
       }
     }
@@ -342,7 +342,7 @@ class Parser(
     return requiredArgs
   }
 
-  private fun funSmt(): FunctionExpr {
+  private fun funSmt(type: Type): FunctionExpr {
     val reference = manager.readFnOutline()
     index = reference.tokenIndex
     manager.enterScope()
@@ -927,11 +927,9 @@ class Parser(
     return expressions
   }
 
-  private fun eat(type: Type): Token {
-    val next = next()
-    if (next.type != type)
-      next.error<String>("Expected token type $type but got $next")
-    return next
+  private fun eat(type: Type) = next().let {
+    if (it.type != type) it.error("Expected token type $type but got ${it.type}")
+    else it
   }
 
   private fun consume(type: Type): Boolean {

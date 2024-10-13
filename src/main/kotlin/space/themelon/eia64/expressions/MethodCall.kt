@@ -10,7 +10,7 @@ data class MethodCall(
     val name: Token,
     val reference: FunctionReference,
     val arguments: List<Expression>, // sig checked
-) : Expression(name) {
+) : Expression() {
 
     override fun <R> accept(v: Visitor<R>) = v.methodCall(this)
 
